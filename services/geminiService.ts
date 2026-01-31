@@ -1,3 +1,9 @@
+// 在文件最開頭加入這些
+console.log("=== Environment Variables Debug ===");
+console.log("import.meta.env:", import.meta.env);
+console.log("VITE_GEMINI_API_KEY:", import.meta.env.VITE_GEMINI_API_KEY);
+console.log("VITE_GAS_URL:", import.meta.env.VITE_GAS_URL);
+console.log("===================================");
 import { GoogleGenAI, Type } from "@google/genai";
 import { DesignStyle } from "../types";
 
