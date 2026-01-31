@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import { DesignStyle } from "../types";
 
@@ -14,22 +13,33 @@ const STYLE_KEYWORDS: Record<DesignStyle, string> = {
 const OFFICE_DNA = "designed with golden ratio proportions, precise structural lines, high-end material textures, professional architectural photography style";
 const SPATIAL_DNA = "Transform this 2D floor plan into a 3D professional interior visualization. Create a wide-angle perspective view. Focus on spatial depth, volumetric lighting, and realistic material rendering.";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// 初始化 API Key
+const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+
+if (!API_KEY) {
+  console.error("❌ VITE_GEMINI_API_KEY is missing!");
+  throw new Error("API Key not configured. Please set VITE_GEMINI_API_KEY in environment variables.");
+}
+
+console.log("✅ API Key loaded successfully");
+
+const genAI = new GoogleGenAI(API_KEY);
 
 /**
- * Step 1: Analyze the floor plan to identify rooms
+ * Step 1: 分析平面圖以識別房間
  */
 export const analyzeFloorPlan = async (base64Image: string): Promise<string[]> => {
-  const model = 'gemini-3-flash-preview';
-  const response = await ai.models.generateContent({
-    model: model,
-    contents: {
+  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+  const response = await model.generateContent({
+    contents: [{
+      role: "user",
       parts: [
         { inlineData: { data: base64Image.split(',')[1], mimeType: 'image/jpeg' } },
-        { text: "Identify the core rooms in this floor plan. Focus on identifying if there is a 'Living Room', 'Master Bedroom', and 'Dining Room'. Return ONLY a JSON array of strings containing these 3 room types if found, or similar equivalents." }
+        { text: "Identify the core rooms in this floor plan. Focus on identifying if there is a 'Living Room', 'Master Bedroom', and 'Dining Room'. Return ONLY a JSON array of strings containing these 3 room types if found." }
       ]
-    },
-    config: {
+    }],
+    generationConfig: {
       responseMimeType: "application/json",
       responseSchema: {
         type: Type.OBJECT,
@@ -45,46 +55,49 @@ export const analyzeFloorPlan = async (base64Image: string): Promise<string[]> =
   });
 
   try {
-    const data = JSON.parse(response.text || '{"rooms": []}');
-    // Default to the requested 3 if none found or to ensure we have exactly 3
-    const rooms = data.rooms.length > 0 ? data.rooms : ['Living Room', 'Master Bedroom', 'Dining Room'];
-    return rooms.slice(0, 3);
+    const text = response.response.text();
+    const data = JSON.parse(text || '{"rooms": []}');
+    return data.rooms.length > 0 ? data.rooms.slice(0, 3) : ['Living Room', 'Master Bedroom', 'Dining Room'];
   } catch (e) {
+    console.error("分析平面圖失敗:", e);
     return ['Living Room', 'Master Bedroom', 'Dining Room'];
   }
 };
 
 /**
- * Step 2: Generate individual 3D views for specific rooms
+ * Step 2: 為特定房間生成 3D 視覺化視圖
  */
 export const generateRoomView = async (base64Image: string, style: DesignStyle, roomType: string): Promise<string> => {
-  const model = 'gemini-2.5-flash-image';
-  const styleKeywords = STYLE_KEYWORDS[style] || "";
+  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
   
+  const styleKeywords = STYLE_KEYWORDS[style] || "";
   const assemblyPrompt = (extra: string = "") => 
     `A high-end architectural interior redesign of the ${roomType} shown in this floor plan. ${SPATIAL_DNA}, ${styleKeywords}, ${OFFICE_DNA}, ${extra} photorealistic, 8k, architectural digest style, sharp focus.`;
 
   const call = async (prompt: string) => {
-    const res = await ai.models.generateContent({
-      model: model,
-      contents: {
+    const res = await model.generateContent({
+      contents: [{
+        role: "user",
         parts: [
           { inlineData: { data: base64Image.split(',')[1], mimeType: 'image/jpeg' } },
           { text: prompt }
         ]
-      }
+      }]
     });
 
-    if (!res.candidates?.[0]?.content?.parts) throw new Error("SAFETY");
-    for (const part of res.candidates[0].content.parts) {
+    const content = res.response;
+    if (!content.candidates?.[0]?.content?.parts) throw new Error("SAFETY_OR_EMPTY");
+    
+    for (const part of content.candidates[0].content.parts) {
       if (part.inlineData) return `data:image/png;base64,${part.inlineData.data}`;
     }
-    throw new Error("EMPTY");
+    throw new Error("NO_IMAGE_RETURNED");
   };
 
   try {
     return await call(assemblyPrompt());
   } catch (err: any) {
+    console.error("第一次生成失敗，嘗試使用備用提示:", err);
     return await call(assemblyPrompt("artistic style, SFW, "));
   }
 };
