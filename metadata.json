@@ -1,0 +1,7 @@
+{
+  "name": "long.architecture studio - AI Lab",
+  "description": "An ultra-minimalist architectural AI space generation platform inspired by SANAA and Todd Saunders.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
