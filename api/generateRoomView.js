@@ -40,7 +40,9 @@ export default async function handler(req, res) {
     }
 
     const genAI = new GoogleGenerativeAI(API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-2.5-flash-image"
+    });
 
     const styleKeywords = STYLE_KEYWORDS[style.toLowerCase()] || STYLE_KEYWORDS.minimalist;
     const imageData = base64Image.split(',')[1];
