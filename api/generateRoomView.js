@@ -1,4 +1,4 @@
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const STYLE_KEYWORDS = {
   minimalist: "Pure white space, ultra-minimalist, glass and steel, seamless floors, abundance of natural light.",
@@ -12,44 +12,31 @@ const STYLE_KEYWORDS = {
 const OFFICE_DNA = "designed with golden ratio proportions, precise structural lines, high-end material textures, professional architectural photography style";
 const SPATIAL_DNA = "Transform this 2D floor plan into a 3D professional interior visualization. Create a wide-angle perspective view. Focus on spatial depth, volumetric lighting, and realistic material rendering.";
 
-exports.handler = async (event) => {
-  const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  };
+export default async function handler(req, res) {
+  // CORS
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 200, headers, body: '' };
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
   }
 
-  if (event.httpMethod !== 'POST') {
-    return {
-      statusCode: 405,
-      headers,
-      body: JSON.stringify({ error: 'Method not allowed' })
-    };
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    const { base64Image, style, roomType } = JSON.parse(event.body);
+    const { base64Image, style, roomType } = req.body;
     
     if (!base64Image || !style || !roomType) {
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({ error: 'Missing required parameters' })
-      };
+      return res.status(400).json({ error: 'Missing required parameters' });
     }
 
     const API_KEY = process.env.GEMINI_API_KEY;
     
     if (!API_KEY) {
-      return {
-        statusCode: 500,
-        headers,
-        body: JSON.stringify({ error: 'API key not configured' })
-      };
+      return res.status(500).json({ error: 'API key not configured' });
     }
 
     const genAI = new GoogleGenerativeAI(API_KEY);
@@ -78,13 +65,9 @@ exports.handler = async (event) => {
 
     for (const part of response.candidates[0].content.parts) {
       if (part.inlineData) {
-        return {
-          statusCode: 200,
-          headers,
-          body: JSON.stringify({ 
-            imageUrl: `data:image/png;base64,${part.inlineData.data}`
-          })
-        };
+        return res.status(200).json({ 
+          imageUrl: `data:image/png;base64,${part.inlineData.data}`
+        });
       }
     }
 
@@ -92,13 +75,9 @@ exports.handler = async (event) => {
 
   } catch (error) {
     console.error('Error:', error);
-    return {
-      statusCode: 500,
-      headers,
-      body: JSON.stringify({ 
-        error: 'Failed to generate room view',
-        details: error.message 
-      })
-    };
+    return res.status(500).json({ 
+      error: 'Failed to generate room view',
+      details: error.message 
+    });
   }
-};
+}

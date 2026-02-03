@@ -1,46 +1,31 @@
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-exports.handler = async (event) => {
-  // CORS headers
-  const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  };
+export default async function handler(req, res) {
+  // CORS
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  // Handle preflight
-  if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 200, headers, body: '' };
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
   }
 
-  if (event.httpMethod !== 'POST') {
-    return {
-      statusCode: 405,
-      headers,
-      body: JSON.stringify({ error: 'Method not allowed' })
-    };
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    const { base64Image } = JSON.parse(event.body);
+    const { base64Image } = req.body;
     
     if (!base64Image) {
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({ error: 'Missing base64Image' })
-      };
+      return res.status(400).json({ error: 'Missing base64Image' });
     }
 
     const API_KEY = process.env.GEMINI_API_KEY;
     
     if (!API_KEY) {
       console.error('GEMINI_API_KEY not found');
-      return {
-        statusCode: 500,
-        headers,
-        body: JSON.stringify({ error: 'API key not configured' })
-      };
+      return res.status(500).json({ error: 'API key not configured' });
     }
 
     const genAI = new GoogleGenerativeAI(API_KEY);
@@ -69,21 +54,13 @@ exports.handler = async (event) => {
       rooms = ['Living Room', 'Master Bedroom', 'Dining Room'];
     }
 
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify({ rooms: rooms.slice(0, 3) })
-    };
+    return res.status(200).json({ rooms: rooms.slice(0, 3) });
 
   } catch (error) {
     console.error('Error:', error);
-    return {
-      statusCode: 500,
-      headers,
-      body: JSON.stringify({ 
-        error: 'Failed to analyze floor plan',
-        details: error.message 
-      })
-    };
+    return res.status(500).json({ 
+      error: 'Failed to analyze floor plan',
+      details: error.message 
+    });
   }
-};
+}

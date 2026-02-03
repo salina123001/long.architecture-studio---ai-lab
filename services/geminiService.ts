@@ -5,7 +5,7 @@ import { DesignStyle } from "../types";
  */
 export const analyzeFloorPlan = async (base64Image: string): Promise<string[]> => {
   try {
-    const response = await fetch('/.netlify/functions/analyzeFloorPlan', {
+    const response = await fetch('/api/analyzeFloorPlan', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -34,7 +34,7 @@ export const generateRoomView = async (
   roomType: string
 ): Promise<string> => {
   try {
-    const response = await fetch('/.netlify/functions/generateRoomView', {
+    const response = await fetch('/api/generateRoomView', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
