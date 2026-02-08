@@ -36,7 +36,7 @@ const App: React.FC = () => {
 
       console.log(`[Check] IP: ${ip}, Usage Count: ${currentCount}`);
 
-      if (!isNaN(currentCount) && currentCount >= 1) {
+      if (!isNaN(currentCount) && currentCount >= 999) {
         setHasReachedLimit(true);
         const limitMsg = `您的 IP 今日配額已達上限 (1/1)，請明日再試。`;
         setState(prev => ({ ...prev, error: limitMsg }));
