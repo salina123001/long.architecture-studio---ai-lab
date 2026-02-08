@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import Header from './components/Header';
 import DropZone from './components/DropZone';
@@ -141,10 +140,6 @@ const App: React.FC = () => {
 
       // 等待後端資料庫同步
       await new Promise(r => setTimeout(r, 1500));
-      
-      // 寫入成功後，立刻標記為已達上限
-      setHasReachedLimit(true);
-      setState(prev => ({ ...prev, error: "您的 IP 今日配額已達上限 (1/1)，請明日再試。" }));
 
       setIsModalOpen(false);
       setIsVerifying(false);
@@ -297,12 +292,10 @@ const App: React.FC = () => {
                   ))}
                 </div>
               </div>
-              {/* 下方聯繫資訊保持... */}
             </div>
           </div>
         )}
       </main>
-      {/* Footer 保持不變... */}
     </div>
   );
 };
