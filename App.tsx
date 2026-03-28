@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Header from './components/Header';
 import DropZone from './components/DropZone';
 import StyleSelector from './components/StyleSelector';
@@ -13,103 +13,254 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbw6wiklq-D00N6gIqeu2ghm
 // ─── Landing Page ─────────────────────────────────────────────────────────────
 
 const LandingPage: React.FC<{ onEnterLab: () => void }> = ({ onEnterLab }) => {
+  const aboutRef = useRef<HTMLDivElement>(null);
+  const contactRef = useRef<HTMLDivElement>(null);
+  const aboutLeftRef = useRef<HTMLDivElement>(null);
+  const aboutRightRef = useRef<HTMLDivElement>(null);
+  const footerRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  // 數字計數動畫
+  const animateCount = (el: HTMLSpanElement, target: number) => {
+    let current = 0;
+    const step = Math.ceil(target / 40);
+    const timer = setInterval(() => {
+      current = Math.min(current + step, target);
+      el.textContent = String(current);
+      if (current >= target) clearInterval(timer);
+    }, 30);
+  };
+
+  useEffect(() => {
+    const targets = [
+      aboutLeftRef.current,
+      aboutRightRef.current,
+      ...footerRefs.current,
+    ].filter(Boolean) as HTMLDivElement[];
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          e.target.classList.add('reveal-visible');
+          // 數字動畫
+          const nums = e.target.querySelectorAll<HTMLSpanElement>('[data-target]');
+          nums.forEach(n => animateCount(n, parseInt(n.dataset.target || '0')));
+          observer.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.2 });
+
+    targets.forEach(t => observer.observe(t));
+    return () => observer.disconnect();
+  }, []);
+
+  const scrollTo = (ref: React.RefObject<HTMLDivElement>) => {
+    ref.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
   return (
-    <div style={{ fontFamily: "'Inter', 'Noto Sans TC', sans-serif", backgroundColor: '#FFFFFF', color: '#333333', lineHeight: '1.5', overflowX: 'hidden' }}>
-      <div style={{ maxWidth: '1600px', margin: '0 auto', padding: '0 4vw' }}>
-        <header style={{ padding: '2rem 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <h1 style={{ fontSize: '1.8rem', fontWeight: 200, color: '#333', letterSpacing: '0.05em', margin: 0 }}>
-              long.architecture studio
-            </h1>
-            <p style={{ fontSize: '10px', letterSpacing: '0.6em', marginTop: '0.5rem', color: '#555', textIndent: '0.6em', margin: '0.5rem 0 0 0' }}>
-              巃.建築設計事務所
-            </p>
-          </div>
-          <nav>
-            <ul style={{ display: 'flex', listStyle: 'none', gap: '2.5rem', margin: 0, padding: 0 }}>
-              {[
-                { label: 'projects', href: '#projects' },
-                { label: 'about', href: '#about' },
-                { label: 'ai lab', href: '#', isLab: true },
-                { label: 'contact', href: '#contact' },
-              ].map(item => (
-                <li key={item.label}>
-                  <a
-                    href={item.href}
-                    onClick={item.isLab ? (e) => { e.preventDefault(); onEnterLab(); } : undefined}
-                    style={{ fontSize: '0.9rem', fontWeight: 300, textDecoration: 'none', color: 'inherit', transition: 'opacity 0.3s ease', letterSpacing: '0.05em' }}
-                    onMouseOver={e => (e.currentTarget.style.opacity = '0.6')}
-                    onMouseOut={e => (e.currentTarget.style.opacity = '1')}
-                  >
-                    {item.label}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </nav>
-        </header>
+    <div style={{ fontFamily: "'Inter','Helvetica Neue',sans-serif", background: '#fff', color: '#222' }}>
+      <style>{`
+        @keyframes fadeInUp {
+          from { opacity: 0; transform: translateY(16px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        .reveal-block {
+          opacity: 0;
+          transform: translateY(32px);
+          transition: opacity 0.9s ease, transform 0.9s ease;
+        }
+        .reveal-block.delay-1 { transition-delay: 0.15s; }
+        .reveal-block.delay-2 { transition-delay: 0.3s; }
+        .reveal-visible {
+          opacity: 1 !important;
+          transform: translateY(0) !important;
+        }
+        .entry-panel {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
+          cursor: pointer;
+          position: relative;
+          overflow: hidden;
+        }
+        .entry-panel::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background: rgba(0,0,0,0);
+          transition: background 0.5s ease;
+        }
+        .entry-panel:hover::after { background: rgba(0,0,0,0.06); }
+        .entry-inner {
+          text-align: center;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 1rem;
+          position: relative;
+          z-index: 1;
+          transition: transform 0.5s ease;
+        }
+        .entry-panel:hover .entry-inner { transform: translateY(-6px); }
+        .entry-btn {
+          font-size: 9px;
+          letter-spacing: 0.35em;
+          color: #555;
+          border: 0.5px solid #999;
+          padding: 0.6rem 1.6rem;
+          text-transform: uppercase;
+          opacity: 0;
+          transform: translateY(8px);
+          transition: opacity 0.4s ease, transform 0.4s ease, background 0.3s, color 0.3s;
+          font-family: inherit;
+          background: transparent;
+          cursor: pointer;
+        }
+        .entry-panel:hover .entry-btn { opacity: 1; transform: translateY(0); }
+        .entry-btn:hover { background: #222; color: #fff; border-color: #222; }
+        .nav-link {
+          font-size: 11px;
+          font-weight: 300;
+          color: #555;
+          letter-spacing: 0.08em;
+          cursor: pointer;
+          position: relative;
+          padding-bottom: 2px;
+          text-decoration: none;
+          transition: color 0.3s;
+          background: none;
+          border: none;
+          font-family: inherit;
+        }
+        .nav-link::after {
+          content: '';
+          position: absolute;
+          bottom: 0; left: 0;
+          width: 0; height: 0.5px;
+          background: #222;
+          transition: width 0.3s;
+        }
+        .nav-link:hover { color: #222; }
+        .nav-link:hover::after { width: 100%; }
+      `}</style>
+
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '1.8rem 3rem', borderBottom: '0.5px solid rgba(0,0,0,0.07)', position: 'sticky', top: 0, background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(8px)', zIndex: 100 }}>
+        <div>
+          <div style={{ fontSize: '1.2rem', fontWeight: 200, letterSpacing: '0.06em' }}>long.architecture studio</div>
+          <div style={{ fontSize: '9px', letterSpacing: '0.55em', color: '#888', marginTop: '5px' }}>巃．建築設計事務所</div>
+        </div>
+        <div style={{ display: 'flex', gap: '2.5rem', paddingTop: '6px' }}>
+          <button className="nav-link" onClick={() => scrollTo(aboutRef)}>projects</button>
+          <button className="nav-link" onClick={() => scrollTo(aboutRef)}>about</button>
+          <button className="nav-link" onClick={onEnterLab} style={{ color: '#222', borderBottom: '0.5px solid #222', paddingBottom: '2px' }}>ai lab</button>
+          <button className="nav-link" onClick={() => scrollTo(contactRef)}>contact</button>
+        </div>
       </div>
 
-      <section style={{ height: '80vh', marginBottom: '12rem', overflow: 'hidden' }}>
-        <img
-          src="https://images.unsplash.com/photo-1582738411706-bfc8e691d1c2?q=80&w=1974&auto=format&fit=crop"
-          alt="建築空間攝影"
-          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-        />
-      </section>
-
-      <section id="projects" style={{ maxWidth: '1600px', margin: '0 auto 12rem', padding: '0 4vw' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '6vw' }}>
-          {[
-            { src: 'https://images.unsplash.com/photo-1507842217343-583bb7270b66?q=80&w=1953&auto=format&fit=crop', label: '清水模住宅, 台北' },
-            { src: 'https://images.unsplash.com/photo-1618788372246-79faff0c3742?q=80&w=1935&auto=format&fit=crop', label: '極簡商業空間, 台中' },
-            { src: 'https://images.unsplash.com/photo-1596443686489-5152e883283c?q=80&w=1974&auto=format&fit=crop', label: '海邊別墅, 墾丁' },
-            { src: 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5?q=80&w=1964&auto=format&fit=crop', label: '城市藝術館, 高雄' },
-          ].map((proj, i) => (
-            <div key={i}>
-              <img
-                src={proj.src}
-                alt={proj.label}
-                style={{ width: '100%', height: '400px', objectFit: 'cover', marginBottom: '1rem', display: 'block', transition: 'opacity 0.4s ease' }}
-                onMouseOver={e => (e.currentTarget.style.opacity = '0.85')}
-                onMouseOut={e => (e.currentTarget.style.opacity = '1')}
-              />
-              <p style={{ fontSize: '0.9rem', fontWeight: 300, color: '#444', margin: 0 }}>{proj.label}</p>
-            </div>
+      {/* Hero：兩個入口 */}
+      <div style={{ position: 'relative', width: '100%', height: '100vh', background: 'linear-gradient(140deg,#f7f6f4 0%,#edeae4 40%,#f2efeb 70%,#e9e6e0 100%)', display: 'flex', overflow: 'hidden' }}>
+        {/* 大理石紋 */}
+        <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', opacity: 0.18, pointerEvents: 'none' }}>
+          {[[18,8,45,-13],[32,2,60,-10],[52,15,50,-16],[68,0,55,-8]].map(([t,l,w,r],i) => (
+            <div key={i} style={{ position:'absolute', top:`${t}%`, left:`${l}%`, width:`${w}%`, height: i%2===0?'0.5px':'1px', background:'#bbb', transform:`rotate(${r}deg)` }} />
+          ))}
+          {[[28,8,38,18],[60,3,42,14]].map(([t,r,w,rot],i) => (
+            <div key={i} style={{ position:'absolute', top:`${t}%`, right:`${r}%`, width:`${w}%`, height:'0.5px', background:'#aaa', transform:`rotate(${rot}deg)` }} />
           ))}
         </div>
-      </section>
 
-      <section id="ai-lab" style={{ marginBottom: '12rem', padding: '8rem 0', position: 'relative', backgroundColor: '#f9f9f9', overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', inset: 0, backgroundImage: "url('https://images.unsplash.com/photo-1617097431754-1f502be22859?q=80&w=1974&auto=format&fit=crop')", backgroundSize: 'cover', backgroundPosition: 'center', opacity: 0.15, zIndex: 0 }} />
-        <div style={{ position: 'relative', zIndex: 1, maxWidth: '800px', margin: '0 auto', textAlign: 'center', padding: '0 2rem' }}>
-          <h2 style={{ fontSize: '2rem', fontWeight: 200, marginBottom: '1.5rem', letterSpacing: '0.1em', color: '#333', marginTop: 0 }}>AI Design Lab</h2>
-          <p style={{ fontSize: '1rem', fontWeight: 300, marginBottom: '3rem', color: '#555', lineHeight: 1.8 }}>
-            Projecting the future of space through AI.<br />探索 AI 與空間美學的無限可能。
-          </p>
-          <button
-            onClick={onEnterLab}
-            style={{ display: 'inline-block', fontSize: '0.9rem', fontWeight: 300, padding: '1rem 2rem', border: '1px solid #333', backgroundColor: 'transparent', cursor: 'pointer', transition: 'all 0.3s ease', letterSpacing: '0.08em', color: '#333', fontFamily: 'inherit' }}
-            onMouseOver={e => { e.currentTarget.style.backgroundColor = '#333'; e.currentTarget.style.color = '#fff'; }}
-            onMouseOut={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#333'; }}
-          >
-            Enter AI Lab
-          </button>
-        </div>
-      </section>
-
-      <div style={{ maxWidth: '1600px', margin: '0 auto', padding: '0 4vw' }}>
-        <footer id="contact" style={{ padding: '6rem 0 3rem', borderTop: '1px solid #eee' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-            <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: '4rem', fontWeight: 300, fontSize: '0.9rem', color: '#666' }}>
-              <p style={{ margin: 0 }}>Email: info@long-architecture.com</p>
-              <p style={{ margin: 0 }}>地址: 台北市大安區仁愛路四段126號15樓</p>
-            </div>
-            <p style={{ fontSize: '0.8rem', color: '#888', fontWeight: 200, margin: '2rem 0 0 0' }}>
-              © 2025 long.architecture studio 巃.建築設計事務所. All rights reserved.
-            </p>
+        {/* 左：Projects */}
+        <div className="entry-panel" style={{ borderRight: '0.5px solid rgba(0,0,0,0.1)' }}>
+          <div className="entry-inner">
+            <div style={{ fontSize:'9px', letterSpacing:'0.6em', color:'#999', textTransform:'uppercase', animation:'fadeInUp 0.8s 0.2s both' }}>01</div>
+            <div style={{ fontSize:'2.2rem', fontWeight:200, letterSpacing:'0.12em', textTransform:'uppercase', color:'#1a1a1a', animation:'fadeInUp 0.8s 0.4s both' }}>Projects</div>
+            <div style={{ fontSize:'14px', letterSpacing:'0.2em', color:'#777', animation:'fadeInUp 0.8s 0.6s both' }}>作品集</div>
+            <button className="entry-btn" onClick={() => scrollTo(aboutRef)}>View Works →</button>
           </div>
-        </footer>
+        </div>
+
+        {/* 右：AI Lab */}
+        <div className="entry-panel">
+          <div className="entry-inner">
+            <div style={{ fontSize:'9px', letterSpacing:'0.6em', color:'#999', textTransform:'uppercase', animation:'fadeInUp 0.8s 0.3s both' }}>02</div>
+            <div style={{ fontSize:'2.2rem', fontWeight:200, letterSpacing:'0.12em', textTransform:'uppercase', color:'#1a1a1a', animation:'fadeInUp 0.8s 0.5s both' }}>AI Lab</div>
+            <div style={{ fontSize:'14px', letterSpacing:'0.2em', color:'#777', animation:'fadeInUp 0.8s 0.7s both' }}>空間設計生成</div>
+            <button className="entry-btn" onClick={onEnterLab}>Enter Lab →</button>
+          </div>
+        </div>
+      </div>
+
+      {/* About */}
+      <div ref={aboutRef} style={{ padding: '7rem 3rem', maxWidth: '1100px', margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1.8fr', gap: '6rem', alignItems: 'start' }}>
+        <div ref={aboutLeftRef} className="reveal-block">
+          <div style={{ fontSize:'9px', letterSpacing:'0.5em', color:'#aaa', textTransform:'uppercase', marginBottom:'1.5rem' }}>About</div>
+          <div style={{ fontSize:'1.5rem', fontWeight:200, color:'#1a1a1a', letterSpacing:'0.05em', lineHeight:1.7 }}>關於<br/>巃．建築</div>
+          <div style={{ width:'32px', height:'0.5px', background:'#bbb', marginTop:'2rem' }} />
+        </div>
+        <div ref={aboutRightRef} className="reveal-block delay-1">
+          <p style={{ fontSize:'0.9rem', fontWeight:300, color:'#555', lineHeight:2.1, marginBottom:'1.8rem' }}>
+            巃．建築設計事務所創立於2015年，長期致力於探索空間與光線的本質關係。我們相信，真正的建築不只是結構的堆疊，而是對生活方式的深刻回應。
+          </p>
+          <p style={{ fontSize:'0.9rem', fontWeight:300, color:'#555', lineHeight:2.1, marginBottom:'3rem' }}>
+            從住宅設計到商業空間，每一個專案都從場地的獨特性出發，融合材料的質感與光影的流動，打造出兼具機能與美學的建築語彙。近年來，事務所更引入 AI 輔助設計工具，讓業主在設計初期即可直觀感受空間提案的可能性。
+          </p>
+          <div style={{ display:'flex', gap:'4rem' }}>
+            {[{target:80,suffix:'+',label:'PROJECTS'},{target:10,suffix:'',label:'YEARS'},{target:5,suffix:'',label:'AWARDS'}].map(({target,suffix,label}) => (
+              <div key={label}>
+                <div style={{ display:'flex', alignItems:'baseline', gap:'2px' }}>
+                  <span data-target={target} style={{ fontSize:'1.8rem', fontWeight:200, color:'#1a1a1a' }}>0</span>
+                  <span style={{ fontSize:'1.8rem', fontWeight:200, color:'#1a1a1a' }}>{suffix}</span>
+                </div>
+                <div style={{ fontSize:'8px', letterSpacing:'0.3em', color:'#aaa', marginTop:'6px' }}>{label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* 分隔線 */}
+      <div style={{ height:'0.5px', background:'rgba(0,0,0,0.07)', margin:'0 3rem' }} />
+
+      {/* Footer */}
+      <div ref={contactRef} style={{ padding:'5rem 3rem 3rem', maxWidth:'1100px', margin:'0 auto', display:'grid', gridTemplateColumns:'1.5fr 1fr 1fr', gap:'4rem' }}>
+        {[0,1,2].map(i => (
+          <div key={i} ref={el => { footerRefs.current[i] = el; }} className={`reveal-block${i > 0 ? ` delay-${i}` : ''}`}>
+            {i === 0 && <>
+              <div style={{ fontSize:'1.1rem', fontWeight:200, letterSpacing:'0.06em', marginBottom:'0.5rem' }}>long.architecture studio</div>
+              <div style={{ fontSize:'9px', letterSpacing:'0.5em', color:'#aaa', marginBottom:'1.5rem' }}>巃．建築設計事務所</div>
+              <div style={{ fontSize:'11px', fontWeight:300, color:'#666', lineHeight:2.2 }}>
+                台北市大安區仁愛路四段 126 號 15 樓<br/>
+                info@long-architecture.com<br/>
+                +886 2 2700 0000
+              </div>
+            </>}
+            {i === 1 && <>
+              <div style={{ fontSize:'9px', letterSpacing:'0.5em', color:'#aaa', textTransform:'uppercase', marginBottom:'1.5rem' }}>Navigation</div>
+              <div style={{ display:'flex', flexDirection:'column', gap:'0.9rem', fontSize:'11px', fontWeight:300, color:'#666', letterSpacing:'0.05em' }}>
+                {['Projects','About','AI Lab','Contact'].map(l => (
+                  <button key={l} onClick={l === 'AI Lab' ? onEnterLab : l === 'Contact' ? () => scrollTo(contactRef) : () => scrollTo(aboutRef)}
+                    style={{ background:'none', border:'none', fontFamily:'inherit', fontSize:'11px', fontWeight:300, color:'#666', letterSpacing:'0.05em', cursor:'pointer', textAlign:'left', padding:0, transition:'color 0.3s' }}
+                    onMouseOver={e => (e.currentTarget.style.color='#222')}
+                    onMouseOut={e => (e.currentTarget.style.color='#666')}
+                  >{l}</button>
+                ))}
+              </div>
+            </>}
+            {i === 2 && <>
+              <div style={{ fontSize:'9px', letterSpacing:'0.5em', color:'#aaa', textTransform:'uppercase', marginBottom:'1.5rem' }}>Follow</div>
+              <div style={{ display:'flex', flexDirection:'column', gap:'0.9rem', fontSize:'11px', fontWeight:300, color:'#666', letterSpacing:'0.05em' }}>
+                {['Instagram','Facebook','LinkedIn'].map(l => <span key={l}>{l}</span>)}
+              </div>
+            </>}
+          </div>
+        ))}
+      </div>
+
+      <div style={{ padding:'1.5rem 3rem 2.5rem', borderTop:'0.5px solid rgba(0,0,0,0.07)', marginTop:'1rem' }}>
+        <div style={{ fontSize:'10px', fontWeight:300, color:'#ccc', letterSpacing:'0.05em' }}>© 2025 long.architecture studio. All rights reserved.</div>
       </div>
     </div>
   );
