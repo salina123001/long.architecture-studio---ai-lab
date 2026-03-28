@@ -201,12 +201,7 @@ const AILab: React.FC<{ onBack: () => void }> = ({ onBack }) => {
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
-      <Header />
-      <div className="fixed top-6 right-8 z-50 hidden md:block">
-        <button onClick={onBack} className="text-[10px] tracking-[0.3em] text-[#999999] hover:text-[#111111] transition-colors uppercase font-[300]">
-          ← back to studio
-        </button>
-      </div>
+      <Header onBack={onBack} />
       <UserFormModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSubmit={handleFormSubmit} isSubmitting={isVerifying} />
       <main className="flex-grow flex flex-col pt-32 pb-12 px-8 md:px-16 lg:px-24 max-w-[1920px] mx-auto w-full">
         {!showResults ? (
