@@ -152,12 +152,6 @@ const LandingPage: React.FC<{ onEnterLab: () => void }> = ({ onEnterLab }) => {
           <div style={{ fontSize: '1.2rem', fontWeight: 200, letterSpacing: '0.06em' }}>long.architecture studio</div>
           <div style={{ fontSize: '9px', letterSpacing: '0.55em', color: '#888', marginTop: '5px' }}>巃．建築設計事務所</div>
         </div>
-        <div style={{ display: 'flex', gap: '2.5rem', paddingTop: '6px' }}>
-          <button className="nav-link" onClick={() => scrollTo(aboutRef)}>projects</button>
-          <button className="nav-link" onClick={() => scrollTo(aboutRef)}>about</button>
-          <button className="nav-link" onClick={onEnterLab} style={{ color: '#222', borderBottom: '0.5px solid #222', paddingBottom: '2px' }}>ai lab</button>
-          <button className="nav-link" onClick={() => scrollTo(contactRef)}>contact</button>
-        </div>
       </div>
 
       {/* Hero：兩個入口 */}
