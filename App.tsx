@@ -5,6 +5,7 @@ import StyleSelector from './components/StyleSelector';
 import EnergyFlowOverlay from './components/EnergyFlowOverlay';
 import Watermark from './components/Watermark';
 import UserFormModal from './components/UserFormModal';
+import Projects from './components/Projects';
 import { DesignStyle, GenerationState, GeneratedSpace } from './types';
 import { analyzeFloorPlan, generateRoomView } from './services/geminiService';
 
@@ -12,7 +13,7 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbw6wiklq-D00N6gIqeu2ghm
 
 // ─── Landing Page ─────────────────────────────────────────────────────────────
 
-const LandingPage: React.FC<{ onEnterLab: () => void }> = ({ onEnterLab }) => {
+const LandingPage: React.FC<{ onEnterLab: () => void; onEnterProjects: () => void }> = ({ onEnterLab, onEnterProjects }) => {
   const aboutRef = useRef<HTMLDivElement>(null);
   const contactRef = useRef<HTMLDivElement>(null);
   const aboutLeftRef = useRef<HTMLDivElement>(null);
@@ -172,7 +173,7 @@ const LandingPage: React.FC<{ onEnterLab: () => void }> = ({ onEnterLab }) => {
             <div style={{ fontSize:'9px', letterSpacing:'0.6em', color:'#999', textTransform:'uppercase', animation:'fadeInUp 0.8s 0.2s both' }}>01</div>
             <div style={{ fontSize:'2.2rem', fontWeight:200, letterSpacing:'0.12em', textTransform:'uppercase', color:'#1a1a1a', animation:'fadeInUp 0.8s 0.4s both' }}>Projects</div>
             <div style={{ fontSize:'14px', letterSpacing:'0.2em', color:'#777', animation:'fadeInUp 0.8s 0.6s both' }}>作品集</div>
-            <button className="entry-btn" onClick={() => scrollTo(aboutRef)}>View Works →</button>
+            <button className="entry-btn" onClick={onEnterProjects}>View Works →</button>
           </div>
         </div>
 
@@ -235,7 +236,7 @@ const LandingPage: React.FC<{ onEnterLab: () => void }> = ({ onEnterLab }) => {
               <div style={{ fontSize:'9px', letterSpacing:'0.5em', color:'#aaa', textTransform:'uppercase', marginBottom:'1.5rem' }}>Navigation</div>
               <div style={{ display:'flex', flexDirection:'column', gap:'0.9rem', fontSize:'11px', fontWeight:300, color:'#666', letterSpacing:'0.05em' }}>
                 {['Projects','About','AI Lab','Contact'].map(l => (
-                  <button key={l} onClick={l === 'AI Lab' ? onEnterLab : l === 'Contact' ? () => scrollTo(contactRef) : () => scrollTo(aboutRef)}
+                  <button key={l} onClick={l === 'AI Lab' ? onEnterLab : l === 'Projects' ? onEnterProjects : l === 'Contact' ? () => scrollTo(contactRef) : () => scrollTo(aboutRef)}
                     style={{ background:'none', border:'none', fontFamily:'inherit', fontSize:'11px', fontWeight:300, color:'#666', letterSpacing:'0.05em', cursor:'pointer', textAlign:'left', padding:0, transition:'color 0.3s' }}
                     onMouseOver={e => (e.currentTarget.style.color='#222')}
                     onMouseOut={e => (e.currentTarget.style.color='#666')}
@@ -431,9 +432,9 @@ const AILab: React.FC<{ onBack: () => void }> = ({ onBack }) => {
 // ─── Root ─────────────────────────────────────────────────────────────────────
 
 const App: React.FC = () => {
-  const [page, setPage] = useState<'landing' | 'lab'>('landing');
-  return page === 'landing'
-    ? <LandingPage onEnterLab={() => setPage('lab')} />
+  const [page, setPage] = useState<'landing' | 'lab' | 'projects'>('landing');
+  return page === 'projects' ? <Projects onBack={() => setPage('landing')} /> : page === 'landing'
+    ? <LandingPage onEnterLab={() => setPage('lab')} onEnterProjects={() => setPage('projects')} />
     : <AILab onBack={() => setPage('landing')} />;
 };
 
