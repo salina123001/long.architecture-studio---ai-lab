@@ -1,0 +1,1172 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>靈籤祈願所</title>
+  <style>
+    /* ═══ RESET & ROOT ═══ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { background: #040610; }
+
+    :root {
+      --bg:      #040610;
+      --gold:    #e8b44a;
+      --goldhi:  #fcd97a;
+      --silver:  #cbd5e1;
+      --dim:     rgba(255,255,255,0.48);
+      --ring-c:  #60a5fa;
+      font-size: 16px;
+    }
+
+    body {
+      background-color: #040610;
+      color: #f0f4ff;
+      font-family: 'KaiTi','STKaiti','SimSun','STSong',serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ═══ BACKGROUND REALM ═══ */
+    #realm {
+      position: fixed; inset: 0; z-index: 0;
+      transition: background 1.2s ease, opacity 1.2s ease;
+      background: radial-gradient(ellipse 120% 80% at 50% -10%, var(--realm-c) 0%, transparent 70%);
+    }
+    #realm-rays {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      opacity: 0.35;
+      animation: rays-spin 60s linear infinite;
+      /* background set via JS to avoid conic-gradient + CSS-var parse issues */
+    }
+    @keyframes rays-spin { to { transform: rotate(360deg); } }
+
+    #star-canvas {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    }
+
+    /* ═══ NAV ═══ */
+    #topnav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.9rem 1.6rem;
+      background: linear-gradient(180deg, rgba(4,6,16,0.9) 0%, transparent 100%);
+    }
+    #topnav a {
+      color: rgba(232,180,74,0.7); font-size: 0.82rem;
+      text-decoration: none; letter-spacing: 0.12em;
+      transition: color 0.2s;
+    }
+    #topnav a:hover { color: var(--gold); }
+    #topnav .site-name {
+      font-size: 0.82rem; letter-spacing: 0.2em; color: rgba(255,255,255,0.3);
+    }
+
+    /* ═══ MAIN WRAPPER ═══ */
+    main {
+      position: relative; z-index: 10;
+      max-width: 960px; margin: 0 auto;
+      padding: 5rem 1.4rem 4rem;
+      display: flex; flex-direction: column; align-items: center;
+    }
+
+    /* ═══ HEADER ═══ */
+    #header { text-align: center; margin-bottom: 3.5rem; }
+    .eyebrow {
+      display: inline-flex; align-items: center; gap: 0.7rem;
+      font-size: 0.7rem; letter-spacing: 0.45em; color: rgba(232,180,74,0.65);
+      margin-bottom: 1.2rem;
+    }
+    .eyebrow::before, .eyebrow::after {
+      content: ''; width: 32px; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(232,180,74,0.5));
+    }
+    .eyebrow::after { transform: scaleX(-1); }
+    #main-title {
+      font-size: clamp(3.5rem, 10vw, 6rem);
+      font-weight: 900;
+      letter-spacing: 0.25em;
+      line-height: 1;
+      color: #fcd97a;
+      text-shadow: 0 0 30px rgba(232,180,74,0.7), 0 0 70px rgba(232,180,74,0.35), 0 0 120px rgba(232,180,74,0.15);
+      margin-bottom: 1.2rem;
+    }
+    #header p {
+      color: rgba(240,244,255,0.55); font-size: 0.9rem;
+      line-height: 2.1; letter-spacing: 0.05em;
+    }
+
+    /* ═══ DEITY PORTALS ═══ */
+    #deity-section { width: 100%; margin-bottom: 4rem; }
+    #deity-section h2 {
+      text-align: center; font-size: 1.05rem; letter-spacing: 0.35em;
+      color: rgba(232,180,74,0.55); margin-bottom: 2.5rem;
+    }
+    #portal-row {
+      display: flex; justify-content: center; gap: 3rem;
+      flex-wrap: wrap;
+    }
+
+    .portal-wrap {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 0.9rem; cursor: pointer;
+    }
+    .portal {
+      position: relative; width: 148px; height: 148px;
+      border-radius: 50%;
+      transition: transform 0.4s cubic-bezier(0.22,1,0.36,1);
+    }
+    .portal:hover { transform: translateY(-6px) scale(1.04); }
+    .portal.active { transform: translateY(-6px) scale(1.06); }
+
+    /* Outer rotating ring */
+    .p-ring-outer {
+      position: absolute; inset: -12px;
+      border-radius: 50%;
+      border: 1px dashed rgba(255,255,255,0.18);
+      animation: p-spin 18s linear infinite;
+    }
+    .portal.active .p-ring-outer {
+      border-color: var(--ring-c);
+      border-style: solid;
+      border-width: 1.5px;
+      filter: drop-shadow(0 0 6px var(--ring-c));
+      animation-duration: 8s;
+    }
+    @keyframes p-spin { to { transform: rotate(360deg); } }
+
+    /* Inner ring */
+    .p-ring-inner {
+      position: absolute; inset: -4px;
+      border-radius: 50%;
+      border: 1.5px solid rgba(255,255,255,0.14);
+      transition: border-color 0.4s, box-shadow 0.4s;
+    }
+    .portal.active .p-ring-inner {
+      border-color: var(--ring-c);
+      box-shadow: 0 0 24px var(--ring-c), 0 0 60px var(--ring-c), inset 0 0 20px rgba(0,0,0,0.5);
+    }
+
+    /* Disc */
+    .p-disc {
+      width: 100%; height: 100%; border-radius: 50%;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      background: radial-gradient(circle at 40% 35%, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.7) 100%);
+      border: 1px solid rgba(255,255,255,0.12);
+      position: relative; overflow: hidden;
+      transition: background 0.6s;
+    }
+    .portal.active .p-disc {
+      background: radial-gradient(circle at 40% 30%, rgba(255,255,255,0.18) 0%, rgba(0,0,0,0.55) 100%);
+    }
+    .p-disc::after {
+      content: ''; position: absolute; inset: 0; border-radius: 50%;
+      background: radial-gradient(circle at 50% 110%, var(--ring-c) 0%, transparent 60%);
+      opacity: 0; transition: opacity 0.5s;
+    }
+    .portal.active .p-disc::after { opacity: 0.35; }
+
+    .p-icon { font-size: 3.2rem; filter: drop-shadow(0 0 10px rgba(255,255,255,0.3)); }
+    .portal.active .p-icon { filter: drop-shadow(0 0 16px var(--ring-c)); }
+
+    /* Name + tag */
+    .portal-name {
+      font-size: 1.25rem; letter-spacing: 0.2em; color: rgba(240,244,255,0.75);
+      transition: color 0.4s;
+    }
+    .portal.active .portal-name { color: var(--gold); }
+    .portal-tag {
+      font-size: 0.7rem; letter-spacing: 0.15em; color: rgba(240,244,255,0.35);
+      transition: color 0.4s;
+    }
+    .portal.active .portal-tag { color: rgba(232,180,74,0.7); }
+
+    /* ═══ ALTAR SECTION ═══ */
+    #altar-section {
+      width: 100%; display: flex; flex-direction: column; align-items: center;
+      margin-bottom: 3rem;
+    }
+
+    /* Altar table */
+    .altar-table {
+      position: relative; width: 100%; max-width: 680px;
+      padding: 3rem 2rem 2.5rem;
+      text-align: center;
+      border-top: 1px solid rgba(232,180,74,0.25);
+      border-bottom: 1px solid rgba(232,180,74,0.25);
+    }
+    .altar-table::before, .altar-table::after {
+      content: ''; position: absolute; top: -1px; bottom: -1px; width: 1px;
+      background: linear-gradient(180deg, transparent, rgba(232,180,74,0.25), transparent);
+    }
+    .altar-table::before { left: 0; }
+    .altar-table::after  { right: 0; }
+
+    /* Candles (pure CSS) */
+    .altar-candles {
+      position: absolute; top: 0; left: 0; right: 0;
+      display: flex; justify-content: space-between;
+      padding: 0 2rem; transform: translateY(-100%);
+    }
+    .candle { position: relative; display: inline-flex; flex-direction: column; align-items: center; }
+    .candle-body {
+      width: 10px; height: 44px;
+      background: linear-gradient(90deg,#f7e28a,#e8b83a,#f7e28a);
+      border-radius: 2px;
+    }
+    .flame {
+      position: absolute; bottom: calc(100% - 2px); left: 50%;
+      transform: translateX(-50%);
+      width: 10px; height: 18px;
+      background: radial-gradient(ellipse at 50% 90%, #fff 0%, #ffe033 30%, #ff6600 75%, transparent 100%);
+      border-radius: 50% 50% 30% 30%/60% 60% 40% 40%;
+      animation: flicker 1.7s ease-in-out infinite alternate;
+      filter: blur(0.4px);
+    }
+    @keyframes flicker {
+      0%   { transform: translateX(-50%) scaleX(1)    scaleY(1);    opacity:0.9; }
+      40%  { transform: translateX(-53%) scaleX(0.85) scaleY(1.15); opacity:1;   }
+      100% { transform: translateX(-47%) scaleX(1.12) scaleY(0.92); opacity:0.85;}
+    }
+    .flame-halo {
+      position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
+      width: 28px; height: 36px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,200,60,0.5) 0%, transparent 70%);
+      animation: flicker 1.7s ease-in-out infinite alternate;
+    }
+
+    /* Lot container */
+    .lot-pedestal {
+      display: inline-flex; flex-direction: column; align-items: center;
+      margin-bottom: 2rem; cursor: pointer;
+      transition: filter 0.3s;
+    }
+    .lot-pedestal:hover { filter: drop-shadow(0 0 20px var(--ring-c)); }
+
+    .lot-tube {
+      position: relative; width: 100px; height: 178px;
+      transform-origin: center bottom;
+    }
+    /* Tube body */
+    .lot-tube-body {
+      position: absolute; inset: 0;
+      background: linear-gradient(120deg,
+        #3d1205 0%, #7a2a0e 22%, #b84418 45%,
+        #c8501a 50%, #b84418 55%,
+        #7a2a0e 78%, #3d1205 100%);
+      border-radius: 14px 14px 20px 20px;
+      border: 2px solid rgba(232,180,74,0.55);
+      box-shadow:
+        0 0 50px rgba(232,180,74,0.15),
+        4px 8px 24px rgba(0,0,0,0.85),
+        inset 0 0 30px rgba(0,0,0,0.45);
+      overflow: hidden;
+    }
+    .lot-tube-body::before {
+      content: ''; position: absolute;
+      top: 0; left: 28%; right: 28%; bottom: 0;
+      background: linear-gradient(180deg, rgba(255,220,120,0.2), rgba(255,120,50,0.06) 35%, transparent 70%);
+    }
+    .lot-tube-body::after {
+      content: '聖';
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%,-50%);
+      font-size: 2.6rem; color: rgba(232,180,74,0.28);
+      text-shadow: 0 0 12px rgba(232,180,74,0.3);
+    }
+    .lot-band-top { position: absolute; left: 0; right: 0; top: 26px; height: 10px; background: linear-gradient(180deg,rgba(232,180,74,0.55),rgba(232,180,74,0.18)); border-top: 1px solid rgba(232,180,74,0.6); }
+    .lot-band-bot { position: absolute; left: 0; right: 0; bottom: 26px; height: 10px; background: linear-gradient(180deg,rgba(232,180,74,0.18),rgba(232,180,74,0.55)); border-bottom: 1px solid rgba(232,180,74,0.6); }
+
+    /* Sticks */
+    .lot-sticks {
+      position: absolute; bottom: 100%; left: 50%;
+      transform: translateX(-50%);
+      display: flex; gap: 4px; align-items: flex-end;
+    }
+    .lot-stick {
+      width: 6px; border-radius: 3px 3px 0 0;
+      background: linear-gradient(180deg, #f5e070, #c89008, #7b5e0a);
+      box-shadow: 1px 0 3px rgba(0,0,0,0.45);
+      transform-origin: bottom center;
+    }
+    .lot-stick:nth-child(1){height:48px;transform:rotate(-11deg);}
+    .lot-stick:nth-child(2){height:60px;transform:rotate(-4deg);}
+    .lot-stick:nth-child(3){height:66px;transform:rotate(0);}
+    .lot-stick:nth-child(4){height:56px;transform:rotate(5deg);}
+    .lot-stick:nth-child(5){height:46px;transform:rotate(12deg);}
+
+    /* Float / shake */
+    @keyframes float-lot {
+      0%,100%{transform:rotate(-1.5deg) translateY(0);}
+      50%{transform:rotate(1.5deg) translateY(-10px);}
+    }
+    @keyframes shake-lot {
+      0%,100%{transform:rotate(0);}
+      7%{transform:rotate(-15deg);}
+      18%{transform:rotate(17deg);}
+      30%{transform:rotate(-12deg);}
+      42%{transform:rotate(14deg);}
+      55%{transform:rotate(-8deg);}
+      67%{transform:rotate(9deg);}
+      78%{transform:rotate(-4deg);}
+      89%{transform:rotate(3deg);}
+    }
+    .lot-tube.floating{animation:float-lot 3.2s ease-in-out infinite;}
+    .lot-tube.shaking{animation:shake-lot 1.3s ease-in-out;}
+
+    .altar-label {
+      font-size: 0.75rem; letter-spacing: 0.35em; color: var(--dim);
+      margin-bottom: 0.5rem;
+    }
+    .altar-hint {
+      font-size: 1.2rem; letter-spacing: 0.18em;
+      color: rgba(240,244,255,0.65); margin-bottom: 0.35rem;
+    }
+    .altar-sub {
+      font-size: 0.82rem; color: rgba(240,244,255,0.38);
+      letter-spacing: 0.08em; line-height: 1.85; margin-bottom: 1.8rem;
+    }
+
+    /* Draw button */
+    .btn-draw {
+      display: inline-block;
+      padding: 0.85rem 3.5rem;
+      border-radius: 9999px;
+      background: linear-gradient(135deg, #5a0505 0%, #9b1010 45%, #5a0505 100%);
+      border: 1px solid rgba(232,180,74,0.6);
+      color: var(--gold);
+      font-family: inherit; font-size: 1.05rem; letter-spacing: 0.28em;
+      cursor: pointer;
+      box-shadow: 0 0 40px rgba(155,16,16,0.4), 0 6px 24px rgba(0,0,0,0.5);
+      transition: all 0.3s;
+      position: relative; overflow: hidden;
+    }
+    .btn-draw::before {
+      content: ''; position: absolute;
+      top: -60%; left: -120%; width: 50%; height: 220%;
+      background: linear-gradient(90deg,transparent,rgba(255,255,255,0.1),transparent);
+      transform: skewX(-25deg); transition: left 0.55s;
+    }
+    .btn-draw:hover::before{left:160%;}
+    .btn-draw:hover{transform:scale(1.06);box-shadow:0 0 60px rgba(155,16,16,0.6),0 8px 30px rgba(0,0,0,0.6);}
+    .btn-draw:active{transform:scale(0.97);}
+
+    /* ═══ RESULT SECTION ═══ */
+    #result-section {
+      width: 100%; max-width: 860px;
+      display: none; /* shown via JS */
+    }
+    @keyframes result-rise {
+      0%  { opacity:0; transform:translateY(40px); }
+      100%{ opacity:1; transform:translateY(0); }
+    }
+    .result-rise { animation: result-rise 0.8s cubic-bezier(0.22,1,0.36,1) forwards; }
+
+    /* Top: deity + lot no + level */
+    .result-header {
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem;
+      padding-bottom: 1.2rem;
+      border-bottom: 1px solid rgba(232,180,74,0.2);
+    }
+    .result-meta { display: flex; flex-direction: column; gap: 0.3rem; }
+    .result-deity { font-size: 0.75rem; letter-spacing: 0.3em; color: rgba(232,180,74,0.6); }
+    .result-no { font-size: 1.5rem; letter-spacing: 0.2em; color: var(--gold); }
+
+    /* Fortune level big */
+    .result-level {
+      font-size: 1rem; letter-spacing: 0.18em; font-weight: bold;
+      padding: 0.45rem 1.6rem; border-radius: 9999px;
+    }
+    .lv-da    { background:linear-gradient(135deg,#b87700,#fcd97a,#b87700); color:#1a0800; }
+    .lv-shang { background:linear-gradient(135deg,#7a5200,#c89440,#7a5200); color:#100500; }
+    .lv-zhji  { background:linear-gradient(135deg,#504030,#9a7a50,#504030); color:#100500; }
+    .lv-ping  { background:linear-gradient(135deg,#333,#777,#333); color:#eee; }
+    .lv-xia   { background:linear-gradient(135deg,#5a1800,#8a3010,#5a1800); color:#ffd8b0; }
+    .lv-xx    { background:linear-gradient(135deg,#280000,#6b0000,#280000); color:#fcd97a; }
+
+    /* ── Poem block: vertical layout ── */
+    .poem-area {
+      display: flex; justify-content: center; align-items: flex-start;
+      margin-bottom: 2.5rem;
+      padding: 2.5rem 2rem;
+      background: linear-gradient(145deg, rgba(8,4,22,0.85), rgba(20,8,30,0.65));
+      border: 1px solid rgba(232,180,74,0.18);
+      border-radius: 1.2rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .poem-area::before {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(ellipse at 50% 0%, rgba(232,180,74,0.06) 0%, transparent 65%);
+    }
+    .poem-seal {
+      position: absolute; right: 1.2rem; bottom: 1rem;
+      width: 52px; height: 52px; border-radius: 4px;
+      border: 2px solid rgba(180,30,30,0.6);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.72rem; letter-spacing: 0.05em; line-height: 1.5;
+      color: rgba(180,30,30,0.7); text-align: center;
+      background: rgba(120,10,10,0.15);
+    }
+    .poem-vertical {
+      display: flex;
+      flex-direction: row-reverse; /* right-to-left column order */
+      gap: 2.2rem;
+      position: relative; z-index: 1;
+    }
+    .poem-col {
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      font-size: clamp(1.3rem, 3vw, 1.75rem);
+      line-height: 1;
+      letter-spacing: 0.28em;
+      color: #f0f4ff;
+      text-shadow: 0 0 18px rgba(232,180,74,0.3);
+    }
+    /* Decorative vertical bars */
+    .poem-deco {
+      writing-mode: vertical-rl;
+      font-size: 0.65rem; letter-spacing: 0.5em;
+      color: rgba(232,180,74,0.22); padding: 0 0.4rem;
+      display: flex; align-items: center;
+    }
+
+    /* ── Detail grid ── */
+    .detail-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 0.85rem; margin-bottom: 1.2rem;
+    }
+    .detail-card {
+      background: rgba(8,4,22,0.7);
+      border: 1px solid rgba(232,180,74,0.13);
+      border-radius: 0.85rem; padding: 1rem 1.1rem;
+    }
+    .detail-card h4 {
+      font-size: 0.8rem; letter-spacing: 0.15em; color: var(--gold);
+      margin-bottom: 0.4rem;
+    }
+    .detail-card p { font-size: 0.82rem; line-height: 1.95; color: rgba(240,244,255,0.68); }
+
+    .result-explain {
+      margin-bottom: 1rem; padding: 1rem 1.3rem;
+      background: rgba(232,180,74,0.05); border: 1px solid rgba(232,180,74,0.18);
+      border-radius: 0.85rem; font-size: 0.85rem; line-height: 2;
+      color: rgba(240,244,255,0.78);
+    }
+    .result-advice {
+      margin-bottom: 1.8rem; padding: 1rem 1.3rem;
+      background: rgba(120,10,10,0.1); border: 1px solid rgba(200,40,40,0.2);
+      border-radius: 0.85rem; font-size: 0.85rem; line-height: 2;
+      color: rgba(240,244,255,0.82);
+    }
+    .gold-label { color: var(--gold); font-weight: bold; }
+
+    /* ── Action buttons ── */
+    .action-row { display: flex; gap: 0.7rem; flex-wrap: wrap; }
+    .btn-ghost {
+      flex: 1; min-width: 100px;
+      padding: 0.65rem 1rem; border-radius: 9999px;
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(232,180,74,0.25);
+      color: rgba(240,244,255,0.72); font-family: inherit; font-size: 0.85rem;
+      letter-spacing: 0.12em; cursor: pointer; transition: all 0.25s;
+    }
+    .btn-ghost:hover { background: rgba(232,180,74,0.1); border-color: rgba(232,180,74,0.5); }
+
+    /* ── Divider ── */
+    .or-div {
+      display: flex; align-items: center; gap: 0.8rem;
+      color: rgba(232,180,74,0.4); font-size: 0.7rem; letter-spacing: 0.3em;
+      margin: 0.8rem 0;
+    }
+    .or-div::before, .or-div::after {
+      content: ''; flex: 1; height: 1px;
+      background: linear-gradient(90deg,transparent,rgba(232,180,74,0.3),transparent);
+    }
+
+    /* ── Footer ── */
+    footer {
+      position: relative; z-index: 10;
+      text-align: center; padding: 2rem 1rem 3rem;
+      font-size: 0.72rem; color: rgba(240,244,255,0.25); letter-spacing: 0.1em; line-height: 2;
+    }
+
+    /* ── Responsive ── */
+    @media(max-width:640px){
+      #portal-row { gap: 1.5rem; }
+      .portal { width: 110px; height: 110px; }
+      .p-icon { font-size: 2.4rem; }
+      .portal-name { font-size: 1rem; }
+      .detail-grid { grid-template-columns: 1fr; }
+      .poem-col { font-size: 1.1rem; }
+      .poem-vertical { gap: 1.4rem; }
+    }
+    @media(max-width:420px){
+      .portal { width: 90px; height: 90px; }
+      .p-ring-outer { inset: -8px; }
+      .p-icon { font-size: 2rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Dynamic background ── -->
+<div id="realm"></div>
+<div id="realm-rays"></div>
+<canvas id="star-canvas"></canvas>
+
+<!-- ── Nav ── -->
+<nav id="topnav">
+  <a href="index.html">← 返回修行網</a>
+  <span class="site-name">電子木魚修行網</span>
+</nav>
+
+<!-- ═══════════ MAIN ═══════════ -->
+<main>
+
+  <!-- Header -->
+  <div id="header">
+    <div class="eyebrow">SACRED ORACLE LOTS</div>
+    <h1 id="main-title">靈籤祈願所</h1>
+    <p>請靜下心，選擇想請示的神明，心中默念你的問題<br>
+    當你準備好了，搖動籤筒，領取今日神明指引</p>
+  </div>
+
+  <!-- Deity Portals -->
+  <section id="deity-section">
+    <h2>— 選擇祈願神明 —</h2>
+    <div id="portal-row"></div>
+  </section>
+
+  <!-- Altar -->
+  <section id="altar-section">
+    <div class="altar-table">
+      <div class="altar-candles">
+        <div class="candle">
+          <div class="flame-halo"></div>
+          <div class="flame"></div>
+          <div class="candle-body"></div>
+        </div>
+        <div class="candle">
+          <div class="flame-halo" style="animation-delay:.6s"></div>
+          <div class="flame" style="animation-delay:.6s"></div>
+          <div class="candle-body"></div>
+        </div>
+      </div>
+
+      <div class="altar-label" id="altar-label">請先選擇神明</div>
+
+      <!-- Lot tube -->
+      <div class="lot-pedestal" onclick="onTubeClick()" id="lot-pedestal">
+        <div class="lot-tube floating" id="lot-tube">
+          <div class="lot-sticks">
+            <div class="lot-stick"></div>
+            <div class="lot-stick"></div>
+            <div class="lot-stick"></div>
+            <div class="lot-stick"></div>
+            <div class="lot-stick"></div>
+          </div>
+          <div class="lot-tube-body">
+            <div class="lot-band-top"></div>
+            <div class="lot-band-bot"></div>
+          </div>
+        </div>
+      </div>
+
+      <p class="altar-hint">心中默念你的問題</p>
+      <p class="altar-sub">閉目靜心，準備好後點擊籤筒搖籤<br>或按下下方按鈕開始</p>
+
+      <button class="btn-draw" onclick="drawLot()">⁜ 開始搖籤 ⁜</button>
+    </div>
+  </section>
+
+  <!-- Result -->
+  <section id="result-section">
+    <div class="or-div">籤 詩 結 果</div>
+
+    <div class="result-header">
+      <div class="result-meta">
+        <span class="result-deity" id="r-deity"></span>
+        <span class="result-no" id="r-no"></span>
+      </div>
+      <span class="result-level" id="r-level"></span>
+    </div>
+
+    <!-- Vertical poem -->
+    <div class="poem-area">
+      <div class="poem-seal" id="r-seal">靈<br>籤</div>
+      <div class="poem-vertical" id="r-poem-v"></div>
+    </div>
+
+    <!-- Explain -->
+    <div class="result-explain" id="r-explain"></div>
+
+    <!-- Info grid -->
+    <div class="detail-grid" id="r-grid"></div>
+
+    <!-- Advice -->
+    <div class="result-advice" id="r-advice"></div>
+
+    <!-- Buttons -->
+    <div class="action-row">
+      <button class="btn-ghost" onclick="resetDraw()">重新求籤</button>
+      <button class="btn-ghost" onclick="copyResult()">抄錄籤詩</button>
+      <button class="btn-ghost" onclick="playRevealChime()">重播音效</button>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  ✦ 本頁為文化娛樂與情緒陪伴用途，籤詩內容僅供參考 ✦<br>
+  願你在迷霧中，也能慢慢看見自己的方向
+</footer>
+
+<!-- ═══════════ SCRIPT ═══════════ -->
+<script>
+// ────────────────────────────────────────────────
+// DEITY CONFIG
+// ────────────────────────────────────────────────
+const DEITY_CONFIG = {
+  mazu:   { name:'媽祖',     icon:'🌊', tag:'平安·旅途·守護', ring:'#22d3ee', realm:'rgba(6,40,80,0.85)',  ray:'rgba(34,211,238,0.14)' },
+  yuelao: { name:'月老',     icon:'🌙', tag:'愛情·緣分·關係', ring:'#f472b6', realm:'rgba(50,8,60,0.80)',  ray:'rgba(244,114,182,0.12)' },
+  guanyu: { name:'關聖帝君', icon:'⚔️', tag:'事業·財運·決策', ring:'#fb923c', realm:'rgba(70,10,5,0.85)',  ray:'rgba(251,146,60,0.12)' },
+};
+
+// ────────────────────────────────────────────────
+// LOT DATA — 36 籤 (12 per deity)
+// ────────────────────────────────────────────────
+const LOTS = {
+  mazu: [
+    { no:'第一籤',   level:'上上籤',
+      poem:['日出便見風雲散','光明清淨照世間','一向前途通大道','萬事清吉保平安'],
+      explain:'此籤象徵光明正道在前，一切阻礙皆已消散。事情正往好的方向發展，無需憂慮。',
+      love:'感情明朗，有緣人正靠近，適合真誠表達心意。', career:'工作順遂，才能得以發揮，宜積極把握機會。',
+      wealth:'財路光明，正財豐厚，適合穩健投資。', health:'身心俱安，氣色好轉，注意規律作息。',
+      advice:'感恩當下，以誠待人，好運將持續降臨。' },
+    { no:'第五籤',   level:'上吉籤',
+      poem:['海上明燈照遠津','雲開風定見歸人','心誠自有天恩護','萬里波平福滿門'],
+      explain:'此籤象徵風浪漸止、貴人相助。原本不確定的事情逐漸明朗，只要方向正確，不必過度恐慌。',
+      love:'感情有回溫機會，適合用溫和方式表達真心。', career:'有貴人或資源出現，適合穩健推進，不宜中途放棄。',
+      wealth:'正財穩定，偏財普通，適合保守累積。', health:'壓力慢慢緩解，留意睡眠與腸胃。',
+      advice:'保持善念與耐心，事情正在往安全的方向靠近。' },
+    { no:'第十籤',   level:'上吉籤',
+      poem:['天后護佑自蒼天','海晏河清歲月妍','誠心祈禱靈籤應','吉星高照福綿延'],
+      explain:'此籤象徵神明庇護，天地清明。只要誠心行事，好運自然延續不斷。',
+      love:'感情受神明祝福，適合認真對待眼前的緣分。', career:'職涯受庇蔭，宜把握當前穩定局面。',
+      wealth:'財運穩定，持之以恆可有積蓄。', health:'健康良好，可適度增加運動。',
+      advice:'誠心感恩，不忘初心，福氣自然綿延。' },
+    { no:'第十五籤', level:'中吉籤',
+      poem:['月照中天大地明','波平浪靜萬象清','只要誠心求聖佑','一帆風順入高城'],
+      explain:'此籤表示局勢平穩，只要誠心以對，所求之事終將順利達成。',
+      love:'感情穩定發展，宜誠實坦然相處。', career:'工作進展平順，可依計劃穩步前進。',
+      wealth:'財務狀況尚可，保持收支平衡。', health:'身體無大礙，注意飲食均衡。',
+      advice:'以平常心面對，誠意是最好的護身符。' },
+    { no:'第二十籤', level:'中吉籤',
+      poem:['雲開月出正分明','不須進退問前程','心誠自有貴人引','靜待花開萬事成'],
+      explain:'此籤表示答案尚未完全顯現，但局勢正在變清楚。現在最重要的是穩住心緒，不要因焦慮而亂了判斷。',
+      love:'關係正在慢慢明朗，不必急著追問答案。', career:'適合穩住節奏，先完成眼前任務。',
+      wealth:'財務以保守為佳，不宜衝動投資。', health:'注意睡眠與情緒壓力。',
+      advice:'不要因一時焦慮而做出太快的決定，答案會在情緒安定後慢慢浮現。' },
+    { no:'第二十六籤',level:'小吉籤',
+      poem:['舟行淺灘莫催槳','待得潮來自可航','眼下雖逢些阻滯','轉身一步見春光'],
+      explain:'此籤提醒目前不宜硬闖。阻礙不是失敗，而是時機未到。等待條件成熟，反而會更順。',
+      love:'感情需要空間，不宜逼問或過度解讀對方反應。', career:'計畫可能延遲，適合補強細節。',
+      wealth:'避免大額支出，先整理現金流。', health:'注意疲勞累積，適合放慢生活節奏。',
+      advice:'慢不代表退步，先等潮水來。' },
+    { no:'第三十二籤',level:'小吉籤',
+      poem:['慈母心懷護眾生','天心仁愛應相承','但能誠意虔心拜','禍轉為福百事成'],
+      explain:'此籤示意以慈悲之心待人，自有神明護佑，困境將化為轉機。',
+      love:'以包容代替計較，感情自然好轉。', career:'與同事善意相處，工作環境將改善。',
+      wealth:'行善積德，財源自有補充。', health:'保持心情愉快，身體自然健康。',
+      advice:'善心善行是最好的護身符，以誠待人，處處逢貴人。' },
+    { no:'第三十八籤',level:'平　籤',
+      poem:['霧鎖青山路未明','行人暫且莫心驚','若能守正無偏念','日出東方照遠程'],
+      explain:'此籤代表目前資訊不足，不宜憑猜測下結論。只要守住原則，等待事實浮現，局面自然清楚。',
+      love:'容易想太多，建議先觀察，不要急著定義關係。', career:'職場中避免捲入是非，公事公辦最安全。',
+      wealth:'投資或消費前應多確認資訊。', health:'留意焦慮、頭痛與肩頸緊繃。',
+      advice:'不要急著證明什麼，時間會幫你釐清。' },
+    { no:'第四十四籤',level:'平　籤',
+      poem:['南海慈航普度人','千里波濤佑旅人','若問前途多艱險','持正誠心得庇蔭'],
+      explain:'此籤表示前路雖有波折，但只要持正誠心，仍有神明庇蔭同行。',
+      love:'感情道路雖不平坦，真心相待終有回報。', career:'工作遇到挑戰，但誠實面對可化解困難。',
+      wealth:'財運起伏，保守理財為宜。', health:'注意出行安全，勿過度勞累。',
+      advice:'旅途再艱，心中有正氣，神明自然相伴。' },
+    { no:'第五十籤',  level:'下平籤',
+      poem:['雲行雨施天地應','萬物皆得其所興','問君此事何時定','靜守其時自然明'],
+      explain:'此籤提示事情有其自然時序，不可強求。天地自有安排，靜守才能見到轉機。',
+      love:'緣分未到，不必強求，靜待時機。', career:'工作上宜按部就班，勿急於求成。',
+      wealth:'財運尚未開，宜儲蓄為主。', health:'身體需要休養，切勿過度操勞。',
+      advice:'萬事有時，心急反誤事，靜守正道自然明。' },
+    { no:'第五十五籤',level:'下平籤',
+      poem:['風浪初起莫輕動','靜觀天時待良機','忍得一時風波過','回頭方見是晴天'],
+      explain:'此籤告誡在局勢不穩時，切勿輕舉妄動。忍耐等待，終能見到柳暗花明之時。',
+      love:'感情方面需要耐心，不宜倉促行事。', career:'職場局勢未穩，先鞏固自身位置。',
+      wealth:'此時不宜冒險，保留資金靜待時機。', health:'身心均需靜養，避免過激行為。',
+      advice:'忍一時之急，方能得長久之安，靜待是一種智慧。' },
+    { no:'第五十九籤',level:'下下籤',
+      poem:['黑雲壓頂見難消','此時謹慎莫輕搖','忍得一時風雨過','彩虹終見日高照'],
+      explain:'此籤示意當前困境深重，需格外謹慎。切勿輕率行事，只要忍耐渡過難關，終見光明。',
+      love:'感情面臨考驗，需共同面對才能走出困境。', career:'工作遇重大阻礙，冷靜應對，切勿衝動。',
+      wealth:'財務壓力較大，避免借貸或冒險投資。', health:'身體較弱，需特別注意休息和調養。',
+      advice:'低谷是成長的力量，風雨過後必見彩虹，守住正道不放棄。' },
+  ],
+  yuelao: [
+    { no:'第一籤',   level:'大吉籤',
+      poem:['關關雎鳩在河洲','窈窕淑女君子求','緣分天定紅線牽','佳偶天成福滿樓'],
+      explain:'此籤引自詩經，是月老最吉祥的籤。有情人終成眷屬，緣分已定，只待時機成熟，自然水到渠成。',
+      love:'最上吉，感情將有美好進展，有緣人已在路上。', career:'人際關係順暢，合作機會增多。',
+      wealth:'因人緣帶來財運，善加把握。', health:'心情愉悅，身體自然健康。',
+      advice:'真誠以待，等待緣分水到渠成，勿強求勿退卻。' },
+    { no:'第六籤',   level:'上吉籤',
+      poem:['風弄竹聲只道鳴','月移花影疑人行','多情自古空餘恨','莫使良緣一夢空'],
+      explain:'此籤提醒不要把每個微小跡象都過度解讀為愛的信號。真實的感情需要直接溝通，而非猜測影子。',
+      love:'不要因猜測而誤解對方心意，適合直接表達感情。', career:'職場溝通要清楚直接，避免誤解。',
+      wealth:'財務計劃要明確，避免模糊投資。', health:'過度思慮傷神，適合放鬆心情。',
+      advice:'別讓疑心扼殺緣分，真心不說，良緣可能就此錯過。' },
+    { no:'第十二籤', level:'上吉籤',
+      poem:['紅線暗牽兩心知','春風入戶正逢時','若能真意相交付','花好月圓不負期'],
+      explain:'此籤象徵好緣分正在靠近。只要真誠互動、不要過度防備，關係有機會自然升溫。',
+      love:'有桃花或曖昧升溫機會，適合自然靠近。', career:'人際合作順利，容易得到他人支持。',
+      wealth:'因人脈帶來機會，但仍需理性判斷。', health:'心情改善，睡眠會跟著變好。',
+      advice:'真誠比技巧更有力量，不必演得太完美。' },
+    { no:'第十六籤', level:'上吉籤',
+      poem:['月下老人掌姻緣','千里紅線暗中牽','有緣相會天涯近','無緣對面百里遠'],
+      explain:'此籤道出緣分的奧妙：有緣人雖遠卻近，無緣人雖近如遠。若兩人有緣，自然會相聚。',
+      love:'若有心儀對象，此籤示意有緣，可積極一些。', career:'貴人緣深，適合拓展人際網絡。',
+      wealth:'因緣際會帶來財機，把握不可強求。', health:'身心愉快，精神飽滿。',
+      advice:'相信緣分的力量，有緣自然相聚，莫因距離而退縮。' },
+    { no:'第二十三籤',level:'小吉籤',
+      poem:['紅線輕牽月下人','春風未語已知心','莫催花信頻頻問','緣到自然入夢深'],
+      explain:'此籤表示緣分已有苗頭，但仍在醞釀。越急著確認，越容易讓氣氛變緊張。',
+      love:'曖昧感情需要耐心培養，太急反而容易失衡。', career:'人際合作有助力，溫和溝通帶來好結果。',
+      wealth:'偏財不明顯，適合穩定累積。', health:'多休息，避免被情緒拉著走。',
+      advice:'先讓自己回到舒服的狀態，好的緣分會在自然互動中靠近。' },
+    { no:'第二十八籤',level:'中吉籤',
+      poem:['桃花搖落春不老','緣到天邊自相逢','心中有意莫退卻','鵲橋搭好待君行'],
+      explain:'此籤鼓勵有意者要勇敢前進。鵲橋已架，只差君子走上前去，機不可失。',
+      love:'有明確喜歡的人應鼓起勇氣，此時正是表達好時機。', career:'機會來臨要果斷把握，不可猶豫不決。',
+      wealth:'好時機出現，宜適時把握機會。', health:'活力充沛，適合參加社交活動。',
+      advice:'緣分等待有行動力的人，鼓起勇氣踏出第一步。' },
+    { no:'第三十三籤',level:'中吉籤',
+      poem:['舊夢重逢未必遲','橋邊柳色又新枝','若問前情能否續','先看今心是否知'],
+      explain:'此籤適合問復合、舊情或修復關係。重點不在過去有多深，而是現在雙方是否願意用新的方式相處。',
+      love:'復合有可能，但需要坦誠溝通與新的相處模式。', career:'舊合作、舊人脈可能帶來新機會。',
+      wealth:'過去的資源可重新整理利用。', health:'避免沉溺回憶，注意情緒消耗。',
+      advice:'不是所有舊緣都要重來，先確認它是否真的讓你變好。' },
+    { no:'第四十籤',  level:'中平籤',
+      poem:['新人未必勝舊情','舊情難忘緣已生','但問此心是否真','真情到處自然晴'],
+      explain:'此籤提醒感情最重要的是真心，而非新舊。無論面對誰，只要心意真誠，緣分自能長久。',
+      love:'釐清自己真正的心意，不要為了新鮮感而忽略真情。', career:'忠誠可靠的合作關係比短暫的熱情更有價值。',
+      wealth:'長期穩定的財源優於短期暴利。', health:'情緒起伏大時注意心理健康。',
+      advice:'真心才是感情的根基，不要迷失在選擇裡，回到初心。' },
+    { no:'第四十五籤',level:'中平籤',
+      poem:['牽紅線處月正明','紅線牽來問郎情','若問何時花結果','等到春來自然成'],
+      explain:'此籤表示緣分已在牽線中，但結果需等待時機成熟。急不得，等到春暖花開，自然水到渠成。',
+      love:'有緣在牽，但尚未成熟，需要更多時間相互了解。', career:'計畫已在進行，但尚未到收穫時節，繼續耕耘。',
+      wealth:'財運緩緩而來，保持耐心。', health:'身體調養需要時間，持之以恆。',
+      advice:'等待不是消極，而是讓緣分自然成熟的最好方式。' },
+    { no:'第五十二籤',level:'平　籤',
+      poem:['花影搖搖水上浮','一分情意一分愁','若將猜念當真信','反把良緣變遠舟'],
+      explain:'此籤提醒感情中容易因猜測而受苦。對方未必如你想像，不要讓不安替你做決定。',
+      love:'避免過度腦補，適合找合適時機溫柔確認。', career:'與人合作時，誤會可透過明確溝通化解。',
+      wealth:'避免因情緒性消費而破財。', health:'留意焦慮與心悸，適合放鬆練習。',
+      advice:'你需要的是事實，不是腦中最壞版本的劇情。' },
+    { no:'第五十八籤',level:'下平籤',
+      poem:['七夕銀河鵲橋成','牛女相逢各有情','若問姻緣何時定','緣熟自然瓜落藤'],
+      explain:'此籤以牛郎織女為喻，緣分終將相聚，但需要等待緣熟。不必焦急，緣分成熟時自然瓜落藤。',
+      love:'緣分需要時間，現在不急著確定，等待成熟時機。', career:'人際關係正在發展，需要時間醞釀。',
+      wealth:'財運尚在積累中，保持耐心。', health:'保持規律生活，身心自然安好。',
+      advice:'緣分像瓜熟蒂落，時機未到強求反傷，等待才是智慧。' },
+    { no:'第六十五籤',level:'下下籤',
+      poem:['孤鴻叫斷月中天','才郎未見淚漣漣','此時且莫強求配','待到春暖花自開'],
+      explain:'此籤表示緣分尚未到來，此時強求感情只會讓自己更加痛苦。待到春暖，花自然開放。',
+      love:'感情暫時無緣，此時宜先充實自己，不宜強求。', career:'合作機緣未到，勿強行推進。',
+      wealth:'財運低迷，保守為要，避免大額支出。', health:'情緒低落需調適，多與親友交流。',
+      advice:'孤獨不是永恆，等待不是放棄，先愛自己，緣分自然來臨。' },
+  ],
+  guanyu: [
+    { no:'第一籤',   level:'大吉籤',
+      poem:['巍巍獨步向雲間','玉殿千官第一班','富貴榮華天付汝','福如東海壽如山'],
+      explain:'此籤為關聖帝君最上吉籤，象徵一人之下萬人之上的榮耀。所求之事大吉，功名富貴皆備。',
+      love:'感情圓滿，宜認真對待眼前的緣分。', career:'事業登峰造極，功名大進，是升遷或重大突破的好時機。',
+      wealth:'財運極旺，正財偏財皆豐，宜積極把握機會。', health:'身體強健，精力充沛。',
+      advice:'天降大運，把握機遇，成就一番事業的時機已到。' },
+    { no:'第二籤',   level:'上吉籤',
+      poem:['盈虛消息總天時','自此君當百事宜','若問前程歸縮地','須憑方寸好修為'],
+      explain:'此籤示意時運正在從低谷轉為興旺。只要修身養德、踏實行事，百事皆可順利。',
+      love:'感情關係轉好，以誠相待可有好結果。', career:'工作局勢好轉，個人修為決定能走多遠。',
+      wealth:'財運向好，但要憑本事賺來方為長久。', health:'身體逐漸恢復，保持規律生活習慣。',
+      advice:'運氣是基礎，實力是關鍵，踏實修為才能把握好運。' },
+    { no:'第三籤',   level:'上吉籤',
+      poem:['衣食自然生處有','勸君不用苦勞心','但能孝悌存忠信','福祿來成禍不侵'],
+      explain:'此籤告訴我們：守住做人的根本——孝順、誠信、忠義，衣食自然豐足，禍患不會靠近。',
+      love:'以誠信為基礎的感情最為長久。', career:'忠信正直是職場最好的護盾，不必過度鑽營。',
+      wealth:'合法正當的收入才是真財，不義之財勿取。', health:'規律生活，心安則身安。',
+      advice:'人生最穩的根基是品格，孝悌忠信做到，福祿自來。' },
+    { no:'第十籤',   level:'上吉籤',
+      poem:['青龍出匣振威光','正氣行來百事昌','若問功名何處得','持心守義自成章'],
+      explain:'此籤象徵靠實力、原則與正直得到成果。你不需要討好所有人，只要把該做的事做好。',
+      love:'感情中需坦誠，不宜猜測太多。', career:'適合主動爭取機會，展現你的能力與原則。',
+      wealth:'正財運佳，靠專業與努力更容易有收穫。', health:'注意肩頸與壓力累積。',
+      advice:'用清楚的界線與穩定的實力前進，比討好他人更有效。' },
+    { no:'第二十籤', level:'上吉籤',
+      poem:['功名富貴自能為','偶著仙鞭莫問伊','萬里鵬程君有分','高飛遠舉貫雲霄'],
+      explain:'此籤象徵憑自身能力締造功名，前途無量，萬里鵬程只待展翅高飛。',
+      love:'以個人魅力和能力吸引伴侶，感情自然水到渠成。', career:'大展宏圖的時機，不要限制自己的眼界。',
+      wealth:'靠自身能力累積財富，前景廣闊。', health:'精力旺盛，可適度挑戰自我。',
+      advice:'相信自己的實力，放眼遠大目標，鵬程萬里就在眼前。' },
+    { no:'第二十五籤',level:'中吉籤',
+      poem:['一紙官書火急催','扁舟速下浪如雷','雖然目下多驚險','保汝平安去復回'],
+      explain:'此籤表示雖有急事或變化，局面驚險，但神明保佑，最終可平安渡過。',
+      love:'感情有些波折，但只要誠意應對，最終能化解。', career:'工作有急事或壓力，需迅速應對，結果仍可平安。',
+      wealth:'財務有些急迫，妥善安排可化解。', health:'注意突發狀況，出行多加小心。',
+      advice:'雖有驚險，神明庇護，平安應對，最終無虞。' },
+    { no:'第三十三籤',level:'中吉籤',
+      poem:['戰鼓初鳴未可驚','謀深一步勝先行','眼前小挫非關敗','整甲重來勢更明'],
+      explain:'此籤表示眼前壓力或挫折只是過程，不代表失敗。重新整理策略後，反而能走得更穩。',
+      love:'不要用輸贏看待關係，先放下防衛。', career:'適合檢討流程、補強能力，之後會有反攻機會。',
+      wealth:'投資需停看聽，不適合追高或衝動加碼。', health:'注意壓力造成的失眠或肌肉緊繃。',
+      advice:'先穩陣腳，再出手。你需要策略，不是硬撐。' },
+    { no:'第四十籤',  level:'小吉籤',
+      poem:['路逢岔口莫徬徨','義字當頭自有方','若問何人能共事','久經風雨見忠良'],
+      explain:'此籤提醒你要慎選合作對象。真正可靠的人，不只看表面熱情，而要看長期是否守信。',
+      love:'觀察對方是否言行一致，不要只被甜言打動。', career:'合作案或職場關係要看清責任分工。',
+      wealth:'不宜與不熟的人共同投資或借貸。', health:'避免因人際壓力消耗太多精神。',
+      advice:'信任要建立在行動上，不要只聽承諾。' },
+    { no:'第五十籤',  level:'小吉籤',
+      poem:['赤兔千里追日月','青龍偃月貫長空','義薄雲天名傳世','霸業千秋一英雄'],
+      explain:'此籤以關公自身為象徵，忠義之名可流傳千古。做事以義為先，名聲比短期利益更重要。',
+      love:'以義氣相待，感情才能長久。', career:'以誠信義氣立身，職場聲望自然提升。',
+      wealth:'名聲是無形財富，義氣帶來的人脈勝過金錢。', health:'義氣昂揚，精力旺盛，但注意不要過度消耗。',
+      advice:'義薄雲天是最好的名片，做人以義為先，事業自然長遠。' },
+    { no:'第六十籤',  level:'平　籤',
+      poem:['孤軍莫向險中行','借得東風再點兵','暫守營門非退怯','待時一到自揚名'],
+      explain:'此籤表示目前資源不足，不適合單打獨鬥。等待支援、累積籌碼，會比硬衝更有勝算。',
+      love:'不要一個人承擔所有情緒，適合尋求朋友支持。', career:'暫時低調蓄力，先累積作品、能力或資源。',
+      wealth:'避免高風險操作，保留現金與退路。', health:'注意過勞，身體不是用意志力硬撐的。',
+      advice:'現在不是認輸，而是為下一次出手準備。' },
+    { no:'第八十籤',  level:'下平籤',
+      poem:['何勞鼓瑟更吹笙','寸步如登萬里程','彼此懷疑不相信','休將私意憶濃情'],
+      explain:'此籤提醒當雙方缺乏信任時，再多的努力也如登天之難。不信任的關係需先修復根本。',
+      love:'感情中若有懷疑，需正視問題，溝通化解。', career:'團隊缺乏信任，需先建立共識才能有效推進。',
+      wealth:'財務合作要建立在透明信任的基礎上。', health:'心理壓力大，需要傾訴或專業協助。',
+      advice:'信任是一切關係的根基，失去信任的關係要先重建橋梁。' },
+    { no:'第一百籤',  level:'上上籤',
+      poem:['我本天仙雷雨師','吉凶禍福我先知','至誠禱祝皆靈應','抽得終籤百事宜'],
+      explain:'此籤是關聖帝君一百籤中的末籤，卻是上上大吉。至誠感動神明，百事皆宜，萬事順遂。',
+      love:'感情圓滿，誠心相待，百年好合指日可待。', career:'事業大吉，誠心努力得神明庇護，百事皆宜。',
+      wealth:'財源滾滾，至誠帶來財運，把握時機。', health:'身體健康，神明庇佑，萬事皆吉。',
+      advice:'至誠是最強的力量，以誠心待人待事，神明自然相佑。' },
+  ],
+};
+
+// ────────────────────────────────────────────────
+// STATE
+// ────────────────────────────────────────────────
+let selectedKey = 'mazu';
+let isShaking = false;
+let currentLot = null;
+let audioCtx = null;
+
+// ────────────────────────────────────────────────
+// BACKGROUND REALM
+// ────────────────────────────────────────────────
+function applyRealm(key) {
+  const cfg = DEITY_CONFIG[key];
+  const realm = document.getElementById('realm');
+  const rays  = document.getElementById('realm-rays');
+  const r = cfg.ray;
+  realm.style.background = `radial-gradient(ellipse 130% 70% at 50% -10%, ${cfg.realm} 0%, transparent 70%)`;
+  rays.style.background  = `conic-gradient(from 0deg at 50% 0%,`+
+    `transparent 0deg,${r} 8deg,transparent 16deg,`+
+    `transparent 40deg,${r} 48deg,transparent 56deg,`+
+    `transparent 110deg,${r} 118deg,transparent 126deg,`+
+    `transparent 180deg,${r} 188deg,transparent 196deg,`+
+    `transparent 250deg,${r} 258deg,transparent 266deg)`;
+  document.documentElement.style.setProperty('--ring-c', cfg.ring);
+}
+
+// ────────────────────────────────────────────────
+// STARS
+// ────────────────────────────────────────────────
+function initStars() {
+  const cv = document.getElementById('star-canvas');
+  const ctx = cv.getContext('2d');
+  let W, H, stars;
+
+  function setup() {
+    W = cv.width  = window.innerWidth;
+    H = cv.height = window.innerHeight;
+    stars = Array.from({length: 90}, () => ({
+      x: Math.random() * W,   y: Math.random() * H,
+      r: Math.random() * 1.4 + 0.3,
+      vy: -(Math.random() * 0.25 + 0.05),
+      vx: (Math.random() - 0.5) * 0.1,
+      life: Math.random(),
+      max: Math.random() * 0.55 + 0.1,
+    }));
+  }
+  setup();
+  window.addEventListener('resize', setup);
+
+  (function loop() {
+    ctx.clearRect(0, 0, W, H);
+    stars.forEach(s => {
+      s.x += s.vx; s.y += s.vy; s.life += 0.002;
+      if (s.y < -4) { s.y = H + 4; s.x = Math.random() * W; s.life = 0; }
+      const a = s.max * Math.sin(Math.PI * Math.min(s.life, 1));
+      if (a <= 0) return;
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, 6.283);
+      ctx.fillStyle = `rgba(218,165,32,${a.toFixed(3)})`;
+      ctx.fill();
+    });
+    requestAnimationFrame(loop);
+  })();
+}
+
+// ────────────────────────────────────────────────
+// WEB AUDIO
+// ────────────────────────────────────────────────
+function getAC() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+
+function playBell() {   /* 廟鐘 */
+  try {
+    const c = getAC(), t = c.currentTime;
+    [[190,0.45,4.5],[380,0.18,3],[570,0.09,2]].forEach(([f,a,d]) => {
+      const o=c.createOscillator(), g=c.createGain();
+      o.connect(g); g.connect(c.destination);
+      o.type='sine'; o.frequency.value=f;
+      g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(a,t+0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001,t+d);
+      o.start(t); o.stop(t+d);
+    });
+  }catch(e){}
+}
+
+function playShakeSound() {   /* 籤筒搖動 */
+  try {
+    const c=getAC(), t=c.currentTime, sr=c.sampleRate;
+    const len=Math.floor(sr*1.4), buf=c.createBuffer(1,len,sr), d=buf.getChannelData(0);
+    for(let i=0;i<len;i++){
+      const p=[0.05,0.17,0.31,0.47,0.62,0.76].reduce((a,pt)=>a+Math.exp(-Math.abs(i/len-pt)*60)*0.75,0);
+      d[i]=(Math.random()*2-1)*p*Math.exp(-(i/len)*1.8)*0.65;
+    }
+    const src=c.createBufferSource(); src.buffer=buf;
+    const f=c.createBiquadFilter(); f.type='bandpass'; f.frequency.value=2000; f.Q.value=1.5;
+    const g=c.createGain(); g.gain.value=0.65;
+    src.connect(f); f.connect(g); g.connect(c.destination); src.start(t);
+  }catch(e){}
+}
+
+function playRevealChime() {   /* 揭曉風鈴 */
+  try {
+    const c=getAC(), t=c.currentTime;
+    [523.25,587.33,659.25,783.99,880,1046.5].forEach((f,i)=>{
+      const st=t+i*0.16;
+      [[f,0.28,1.8],[f*2,0.08,1.0]].forEach(([freq,amp,dur])=>{
+        const o=c.createOscillator(),g=c.createGain();
+        o.connect(g); g.connect(c.destination);
+        o.type='sine'; o.frequency.value=freq;
+        g.gain.setValueAtTime(0,st); g.gain.linearRampToValueAtTime(amp,st+0.04);
+        g.gain.exponentialRampToValueAtTime(0.0001,st+dur);
+        o.start(st); o.stop(st+dur);
+      });
+    });
+  }catch(e){}
+}
+
+function playGong() {   /* 大鑼 */
+  try {
+    const c=getAC(), t=c.currentTime;
+    [[80,0.5,2.5],[160,0.2,1.5],[240,0.1,1.0]].forEach(([f,a,d])=>{
+      const o=c.createOscillator(),g=c.createGain();
+      o.connect(g); g.connect(c.destination);
+      o.type='sine'; o.frequency.setValueAtTime(f,t);
+      o.frequency.exponentialRampToValueAtTime(f*0.85,t+d);
+      g.gain.setValueAtTime(a,t); g.gain.exponentialRampToValueAtTime(0.0001,t+d);
+      o.start(t); o.stop(t+d);
+    });
+  }catch(e){}
+}
+
+function playClick() {
+  try {
+    const c=getAC(),t=c.currentTime,o=c.createOscillator(),g=c.createGain();
+    o.connect(g);g.connect(c.destination);o.type='sine';o.frequency.value=880;
+    g.gain.setValueAtTime(0.1,t);g.gain.exponentialRampToValueAtTime(0.0001,t+0.1);
+    o.start(t);o.stop(t+0.1);
+  }catch(e){}
+}
+
+// ────────────────────────────────────────────────
+// PORTAL RENDER
+// ────────────────────────────────────────────────
+function renderPortals() {
+  const row = document.getElementById('portal-row');
+  row.innerHTML = '';
+  Object.entries(DEITY_CONFIG).forEach(([key, cfg]) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'portal-wrap';
+    wrap.innerHTML = `
+      <div class="portal${selectedKey===key?' active':''}" id="portal-${key}"
+           style="--ring-c:${cfg.ring}" onclick="selectDeity('${key}')">
+        <div class="p-ring-outer"></div>
+        <div class="p-ring-inner"></div>
+        <div class="p-disc">
+          <span class="p-icon">${cfg.icon}</span>
+        </div>
+      </div>
+      <span class="portal-name">${cfg.name}</span>
+      <span class="portal-tag">${cfg.tag}</span>
+    `;
+    row.appendChild(wrap);
+  });
+}
+
+// ────────────────────────────────────────────────
+// SELECT DEITY
+// ────────────────────────────────────────────────
+function selectDeity(key) {
+  if (selectedKey === key) return;
+  playBell();
+  selectedKey = key;
+  applyRealm(key);
+  renderPortals();
+  resetDraw(true);
+  document.getElementById('altar-label').textContent = `向${DEITY_CONFIG[key].name}祈願`;
+}
+
+// ────────────────────────────────────────────────
+// SHAKE + DRAW
+// ────────────────────────────────────────────────
+function onTubeClick() {
+  if (isShaking) return;
+  playShakeSound();
+  doShake();
+}
+
+function doShake() {
+  if (isShaking) return;
+  isShaking = true;
+  const tube = document.getElementById('lot-tube');
+  tube.classList.remove('floating');
+  tube.classList.add('shaking');
+  setTimeout(() => {
+    tube.classList.remove('shaking');
+    tube.classList.add('floating');
+    isShaking = false;
+  }, 1350);
+}
+
+function drawLot() {
+  playGong();
+  doShake();
+  setTimeout(() => {
+    const lots = LOTS[selectedKey];
+    const lot = lots[Math.floor(Math.random() * lots.length)];
+    currentLot = lot;
+    showResult(lot);
+    setTimeout(() => playRevealChime(), 500);
+  }, 1150);
+}
+
+// ────────────────────────────────────────────────
+// SHOW RESULT
+// ────────────────────────────────────────────────
+function lvClass(lv) {
+  if (lv.includes('大吉')||lv.includes('上上')) return 'lv-da';
+  if (lv.includes('上吉')) return 'lv-shang';
+  if (lv.includes('中吉')) return 'lv-zhji';
+  if (lv.includes('平'))   return 'lv-ping';
+  if (lv.includes('下下')) return 'lv-xx';
+  return 'lv-xia';
+}
+
+function showResult(lot) {
+  const d = DEITY_CONFIG[selectedKey];
+  const rs = document.getElementById('result-section');
+  rs.style.display = 'block';
+  rs.classList.remove('result-rise');
+  void rs.offsetWidth;
+  rs.classList.add('result-rise');
+
+  document.getElementById('r-deity').textContent = d.name + '　靈籤';
+  document.getElementById('r-no').textContent    = lot.no;
+  document.getElementById('r-seal').innerHTML    = d.name[0] + '<br>籤';
+
+  const lv = document.getElementById('r-level');
+  lv.textContent = lot.level;
+  lv.className   = `result-level ${lvClass(lot.level)}`;
+
+  // Vertical poem
+  const pv = document.getElementById('r-poem-v');
+  pv.innerHTML =
+    `<span class="poem-deco">❧❧❧</span>` +
+    lot.poem.map(line => `<span class="poem-col">${line}</span>`).join('') +
+    `<span class="poem-deco">❧❧❧</span>`;
+
+  document.getElementById('r-explain').innerHTML =
+    `<span class="gold-label">解籤說明：</span>${lot.explain}`;
+
+  document.getElementById('r-grid').innerHTML = [
+    {t:'感情',v:lot.love},{t:'事業',v:lot.career},
+    {t:'財運',v:lot.wealth},{t:'健康',v:lot.health}
+  ].map(x=>`<div class="detail-card"><h4>${x.t}</h4><p>${x.v}</p></div>`).join('');
+
+  document.getElementById('r-advice').innerHTML =
+    `<span class="gold-label">今日建議：</span>${lot.advice}`;
+
+  // Scroll to result
+  setTimeout(() => rs.scrollIntoView({behavior:'smooth', block:'start'}), 100);
+}
+
+// ────────────────────────────────────────────────
+// RESET / COPY
+// ────────────────────────────────────────────────
+function resetDraw(silent) {
+  if (!silent) playClick();
+  currentLot = null;
+  const rs = document.getElementById('result-section');
+  rs.style.display = 'none';
+}
+
+function copyResult() {
+  if (!currentLot) return;
+  playClick();
+  const d   = DEITY_CONFIG[selectedKey];
+  const txt = [
+    `【${d.name}靈籤】 ${currentLot.no}　${currentLot.level}`,
+    '', currentLot.poem.join('\n'), '',
+    `解籤：${currentLot.explain}`, '',
+    `今日建議：${currentLot.advice}`,
+    '', '── 靈籤祈願所'
+  ].join('\n');
+  navigator.clipboard.writeText(txt).then(() => {
+    const btn = document.activeElement;
+    const orig = btn.textContent;
+    btn.textContent = '已複製 ✓';
+    setTimeout(() => { btn.textContent = orig; }, 2200);
+  }).catch(() => prompt('請手動複製：', txt));
+}
+
+// ────────────────────────────────────────────────
+// INIT
+// ────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  renderPortals();
+  applyRealm(selectedKey);
+  document.getElementById('altar-label').textContent = `向${DEITY_CONFIG[selectedKey].name}祈願`;
+  initStars();
+  // iOS AudioContext unlock
+  document.addEventListener('click', () => { try { getAC(); } catch(e){} }, {once:true});
+});
+</script>
+</body>
+</html>
