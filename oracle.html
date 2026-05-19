@@ -2036,8 +2036,19 @@ function initStars() {
 // ────────────────────────────────────────────────
 function getAC() {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  if (audioCtx.state === 'suspended') audioCtx.resume();
+  if (audioCtx.state !== 'running') audioCtx.resume();
   return audioCtx;
+}
+
+function unlockAudio() {
+  try {
+    const c = getAC();
+    // 播放一個靜音 buffer，完整解鎖 iOS AudioContext
+    if (c.state !== 'running') return;
+    const b = c.createBuffer(1, 1, 22050);
+    const s = c.createBufferSource();
+    s.buffer = b; s.connect(c.destination); s.start(0);
+  } catch(e) {}
 }
 
 function playBell() {   /* 廟鐘 */
@@ -2284,8 +2295,10 @@ document.addEventListener('DOMContentLoaded', () => {
   applyRealm(selectedKey);
   document.getElementById('altar-label').textContent = `向${DEITY_CONFIG[selectedKey].name}祈願`;
   initStars();
-  // iOS AudioContext unlock
-  document.addEventListener('click', () => { try { getAC(); } catch(e){} }, {once:true});
+  // iOS / Android AudioContext unlock — touchstart + click 雙保險
+  ['touchstart','touchend','click'].forEach(ev =>
+    document.addEventListener(ev, unlockAudio, {once:false, passive:true})
+  );
 });
 </script>
 </body>
