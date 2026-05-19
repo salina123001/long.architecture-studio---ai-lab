@@ -2143,17 +2143,34 @@ function playGong() {   /* 磬聲 */
   }catch(e){}
 }
 
-function playTubeKnock() {   /* 點籤筒 — 空靈小鐘 */
+function playTubeKnock() {   /* 點籤筒 — 左右晃動連續木質碰撞聲 */
   try {
     const c=getAC(), t=c.currentTime;
-    [[528,0.22,2.0],[1056,0.07,1.3],[264,0.13,1.6]].forEach(([f,a,d])=>{
-      const o=c.createOscillator(),g=c.createGain();
-      o.connect(g); g.connect(c.destination);
-      o.type='sine'; o.frequency.value=f;
-      g.gain.setValueAtTime(a,t);
-      g.gain.exponentialRampToValueAtTime(0.0001,t+d);
-      o.start(t); o.stop(t+d);
-    });
+    const total=1.32, pairs=9;
+    for(let i=0;i<pairs;i++){
+      const prog=i/pairs;
+      const env=Math.sin(prog*Math.PI)*0.55+0.15;  // 中段最響
+      const st=t+prog*total+Math.random()*0.015;
+      // 左敲（低頻）
+      const fL=300+Math.random()*80;
+      const oL=c.createOscillator(),gL=c.createGain();
+      oL.connect(gL);gL.connect(c.destination);
+      oL.type='triangle';oL.frequency.value=fL;
+      gL.gain.setValueAtTime(0,st);
+      gL.gain.linearRampToValueAtTime(env*0.55,st+0.004);
+      gL.gain.exponentialRampToValueAtTime(0.001,st+0.07);
+      oL.start(st);oL.stop(st+0.08);
+      // 右敲（稍高頻，延遲）
+      const stR=st+0.075+Math.random()*0.01;
+      const fR=440+Math.random()*110;
+      const oR=c.createOscillator(),gR=c.createGain();
+      oR.connect(gR);gR.connect(c.destination);
+      oR.type='triangle';oR.frequency.value=fR;
+      gR.gain.setValueAtTime(0,stR);
+      gR.gain.linearRampToValueAtTime(env*0.42,stR+0.004);
+      gR.gain.exponentialRampToValueAtTime(0.001,stR+0.065);
+      oR.start(stR);oR.stop(stR+0.075);
+    }
   }catch(e){}
 }
 
