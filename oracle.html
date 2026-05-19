@@ -299,29 +299,16 @@
     /* Flying lot stick */
     #fly-stick {
       position: fixed; display: none; z-index: 300; pointer-events: none;
-      width: 13px; height: 105px;
-      border-radius: 4px 4px 2px 2px;
-      background: linear-gradient(160deg, #e8c96a 0%, #c8880a 45%, #8b5e0a 100%);
-      box-shadow: 2px 2px 10px rgba(0,0,0,0.6), inset 0 0 6px rgba(255,210,80,0.25);
+      width: 22px; height: 138px;
+      border-radius: 5px 5px 3px 3px;
+      background: linear-gradient(160deg, #f2d870 0%, #cc8e12 45%, #8b5e0a 100%);
+      box-shadow: 3px 3px 14px rgba(0,0,0,0.65), inset 0 0 10px rgba(255,220,80,0.3);
       align-items: center; justify-content: center; flex-direction: column;
-      transform-origin: bottom center;
+      will-change: transform, opacity, left, top;
     }
-    #fly-stick .fst { writing-mode: vertical-rl; font-size: 9px; color: #2a1000;
-      font-weight: bold; letter-spacing: 1px; user-select: none; }
-    @keyframes stk-pop {
-      0%  { transform: translateY(30px) rotate(-12deg) scale(0.4); opacity:0; }
-      18% { transform: translateY(-100px) rotate(10deg) scale(1.08); opacity:1; }
-      38% { transform: translateY(-80px) rotate(-6deg) scale(1); opacity:1; }
-      60% { transform: translateY(-65px) rotate(3deg); opacity:1; }
-      80% { transform: translateY(-58px) rotate(-1deg); opacity:1; }
-      100%{ transform: translateY(-55px) rotate(0deg); opacity:1; }
-    }
-    @keyframes stk-exit {
-      0%  { transform: translateY(-55px) rotate(0deg); opacity:1; }
-      100%{ transform: translateY(150px) rotate(55deg); opacity:0; }
-    }
-    .stk-pop  { animation: stk-pop  1s ease-out forwards; }
-    .stk-exit { animation: stk-exit 0.55s ease-in forwards; }
+    #fly-stick .fst { writing-mode: vertical-rl; font-size: 11px; color: #2a1000;
+      font-weight: bold; letter-spacing: 2px; user-select: none;
+      text-shadow: 0 1px 0 rgba(255,180,0,0.5); }
 
     /* Float / shake */
     @keyframes float-lot {
@@ -2156,6 +2143,20 @@ function playGong() {   /* 磬聲 */
   }catch(e){}
 }
 
+function playTubeKnock() {   /* 點籤筒 — 空靈小鐘 */
+  try {
+    const c=getAC(), t=c.currentTime;
+    [[528,0.22,2.0],[1056,0.07,1.3],[264,0.13,1.6]].forEach(([f,a,d])=>{
+      const o=c.createOscillator(),g=c.createGain();
+      o.connect(g); g.connect(c.destination);
+      o.type='sine'; o.frequency.value=f;
+      g.gain.setValueAtTime(a,t);
+      g.gain.exponentialRampToValueAtTime(0.0001,t+d);
+      o.start(t); o.stop(t+d);
+    });
+  }catch(e){}
+}
+
 function playClick() {
   try {
     const c=getAC(),t=c.currentTime,o=c.createOscillator(),g=c.createGain();
@@ -2209,8 +2210,8 @@ function selectDeity(key) {
 // ────────────────────────────────────────────────
 function onTubeClick() {
   if (isShaking) return;
-  try { getAC().resume(); } catch(e){}   // iOS: 必須在 user gesture 內 resume
-  playShakeSound();
+  try { getAC().resume(); } catch(e){}
+  playTubeKnock();
   doShake();
 }
 
@@ -2244,24 +2245,47 @@ function drawLot() {
 
 function showFlyStick(lot, callback) {
   const tube = document.getElementById('lot-tube');
-  const rect = tube.getBoundingClientRect();
-  const fs = document.getElementById('fly-stick');
+  const tr   = tube.getBoundingClientRect();
+  const fs   = document.getElementById('fly-stick');
   fs.querySelector('.fst').textContent = lot.no;
-  fs.style.left = (rect.left + rect.width / 2 - 6.5) + 'px';
-  fs.style.top  = (rect.top + rect.height * 0.35) + 'px';
-  fs.style.display = 'flex';
-  fs.className = '';
-  void fs.offsetWidth;           // force reflow
-  fs.classList.add('stk-pop');
-  setTimeout(() => {
-    fs.classList.remove('stk-pop');
-    fs.classList.add('stk-exit');
+
+  // 起始位置：籤筒中央，縮小不可見
+  Object.assign(fs.style, {
+    display:'flex', transition:'none',
+    left: (tr.left + tr.width/2 - 11) + 'px',
+    top:  (tr.top + tr.height*0.2) + 'px',
+    transform: 'scale(0.15) rotate(-25deg)',
+    opacity: '0'
+  });
+
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    // 第一段：從筒口彈出（向上）
+    fs.style.transition = 'transform 0.4s cubic-bezier(0.34,1.56,0.64,1), opacity 0.25s, top 0.4s';
+    fs.style.transform  = 'scale(0.9) rotate(8deg)';
+    fs.style.top        = (tr.top - 55) + 'px';
+    fs.style.opacity    = '1';
+
     setTimeout(() => {
-      fs.style.display = 'none';
-      fs.className = '';
-      callback();
-    }, 560);
-  }, 1500);
+      // 第二段：飛到螢幕中央並放大
+      const cx = window.innerWidth  / 2 - 11;
+      const cy = window.innerHeight * 0.27;
+      fs.style.transition = 'transform 0.55s cubic-bezier(0.34,1.56,0.64,1), left 0.55s ease, top 0.55s ease';
+      fs.style.transform  = 'scale(2.8) rotate(0deg)';
+      fs.style.left = cx + 'px';
+      fs.style.top  = cy + 'px';
+
+      // 第三段：停留 2 秒讓使用者看清楚
+      setTimeout(() => {
+        fs.style.transition = 'transform 0.5s ease-in, opacity 0.5s';
+        fs.style.transform  = 'scale(0.4) rotate(35deg)';
+        fs.style.opacity    = '0';
+        setTimeout(() => {
+          fs.style.display = 'none';
+          callback();
+        }, 510);
+      }, 2000);
+    }, 420);
+  }));
 }
 
 // ────────────────────────────────────────────────
