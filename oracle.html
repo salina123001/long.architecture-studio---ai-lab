@@ -2113,15 +2113,16 @@ function playRevealChime() {   /* 揭曉風鈴 */
   }catch(e){}
 }
 
-function playGong() {   /* 大鑼 */
+function playGong() {   /* 磬聲 */
   try {
     const c=getAC(), t=c.currentTime;
-    [[80,0.5,2.5],[160,0.2,1.5],[240,0.1,1.0]].forEach(([f,a,d])=>{
+    // 清脆銅磬：基音 + 泛音，長共鳴
+    [[660,0.38,4.0],[1320,0.13,2.8],[1980,0.05,1.8],[330,0.22,3.2]].forEach(([f,a,d])=>{
       const o=c.createOscillator(),g=c.createGain();
       o.connect(g); g.connect(c.destination);
-      o.type='sine'; o.frequency.setValueAtTime(f,t);
-      o.frequency.exponentialRampToValueAtTime(f*0.85,t+d);
-      g.gain.setValueAtTime(a,t); g.gain.exponentialRampToValueAtTime(0.0001,t+d);
+      o.type='sine'; o.frequency.value=f;
+      g.gain.setValueAtTime(a,t);
+      g.gain.exponentialRampToValueAtTime(0.0001,t+d);
       o.start(t); o.stop(t+d);
     });
   }catch(e){}
@@ -2166,6 +2167,7 @@ function renderPortals() {
 // ────────────────────────────────────────────────
 function selectDeity(key) {
   if (selectedKey === key) return;
+  try { getAC().resume(); } catch(e){}
   playBell();
   selectedKey = key;
   applyRealm(key);
@@ -2179,6 +2181,7 @@ function selectDeity(key) {
 // ────────────────────────────────────────────────
 function onTubeClick() {
   if (isShaking) return;
+  try { getAC().resume(); } catch(e){}   // iOS: 必須在 user gesture 內 resume
   playShakeSound();
   doShake();
 }
@@ -2197,6 +2200,7 @@ function doShake() {
 }
 
 function drawLot() {
+  try { getAC().resume(); } catch(e){}   // iOS: 必須在 user gesture 內 resume
   playGong();
   doShake();
   setTimeout(() => {
