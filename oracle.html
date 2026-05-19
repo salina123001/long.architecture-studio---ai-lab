@@ -2061,18 +2061,15 @@ function initStars() {
 // ────────────────────────────────────────────────
 function getAC() {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  if (audioCtx.state !== 'running') audioCtx.resume();
   return audioCtx;
 }
 
-function unlockAudio() {
+// iOS 關鍵修正：resume() 是非同步的，必須等它完成後才播音
+function withAudio(fn) {
   try {
     const c = getAC();
-    // 播放一個靜音 buffer，完整解鎖 iOS AudioContext
-    if (c.state !== 'running') return;
-    const b = c.createBuffer(1, 1, 22050);
-    const s = c.createBufferSource();
-    s.buffer = b; s.connect(c.destination); s.start(0);
+    if (c.state === 'running') { fn(c); }
+    else { c.resume().then(() => fn(c)).catch(()=>{}); }
   } catch(e) {}
 }
 
@@ -2223,8 +2220,7 @@ function renderPortals() {
 // ────────────────────────────────────────────────
 function selectDeity(key) {
   if (selectedKey === key) return;
-  try { getAC().resume(); } catch(e){}
-  playBell();
+  withAudio(() => playBell());
   selectedKey = key;
   applyRealm(key);
   renderPortals();
@@ -2237,8 +2233,7 @@ function selectDeity(key) {
 // ────────────────────────────────────────────────
 function onTubeClick() {
   if (isShaking) return;
-  try { getAC().resume(); } catch(e){}
-  playTubeKnock();
+  withAudio(() => playTubeKnock());
   doShake();
 }
 
@@ -2256,8 +2251,7 @@ function doShake() {
 }
 
 function drawLot() {
-  try { getAC().resume(); } catch(e){}
-  playShakeSound();
+  withAudio(() => playShakeSound());
   doShake();
   setTimeout(() => {
     const lots = LOTS[selectedKey];
@@ -2402,9 +2396,9 @@ document.addEventListener('DOMContentLoaded', () => {
   applyRealm(selectedKey);
   document.getElementById('altar-label').textContent = `向${DEITY_CONFIG[selectedKey].name}祈願`;
   initStars();
-  // iOS / Android AudioContext unlock — touchstart + click 雙保險
-  ['touchstart','touchend','click'].forEach(ev =>
-    document.addEventListener(ev, unlockAudio, {once:false, passive:true})
+  // iOS 預先解鎖：第一次觸碰就建立並 resume AudioContext
+  ['touchstart','click'].forEach(ev =>
+    document.addEventListener(ev, () => withAudio(()=>{}), {once:true, passive:true})
   );
 });
 </script>
