@@ -169,6 +169,16 @@
 
     .p-icon { font-size: 3.2rem; filter: drop-shadow(0 0 10px rgba(255,255,255,0.3)); }
     .portal.active .p-icon { filter: drop-shadow(0 0 16px var(--ring-c)); }
+    .p-img {
+      position: absolute; inset: 0; width: 100%; height: 100%;
+      object-fit: cover; object-position: top center;
+      border-radius: 50%; opacity: 0.82;
+      transition: opacity 0.5s, filter 0.5s;
+      filter: brightness(0.88) saturate(1.1);
+    }
+    .portal.active .p-img {
+      opacity: 1; filter: brightness(1.05) saturate(1.2);
+    }
 
     /* Name + tag */
     .portal-name {
@@ -644,9 +654,9 @@
 // DEITY CONFIG
 // ────────────────────────────────────────────────
 const DEITY_CONFIG = {
-  guanyin: { name:'觀世音菩薩', icon:'🪷', tag:'指引迷津·消災解厄', ring:'#a78bfa', realm:'rgba(35,10,75,0.88)', ray:'rgba(167,139,250,0.13)' },
-  yuelao:  { name:'月　　老',   icon:'🌙', tag:'感情·緣分·婚姻',   ring:'#f472b6', realm:'rgba(50,8,60,0.80)', ray:'rgba(244,114,182,0.12)' },
-  caishen: { name:'財　神　爺', icon:'🪙', tag:'財運·投資·生意',   ring:'#fbbf24', realm:'rgba(60,25,0,0.88)',  ray:'rgba(251,191,36,0.13)' },
+  guanyin: { name:'觀世音菩薩', icon:'🪷', img:'guanyin.jpg', tag:'指引迷津·消災解厄', ring:'#a78bfa', realm:'rgba(35,10,75,0.88)', ray:'rgba(167,139,250,0.13)' },
+  yuelao:  { name:'月　　老',   icon:'🌙', img:'yuelao.jpg',  tag:'感情·緣分·婚姻',   ring:'#f472b6', realm:'rgba(50,8,60,0.80)', ray:'rgba(244,114,182,0.12)' },
+  caishen: { name:'財　神　爺', icon:'🪙', img:'caishen.jpg', tag:'財運·投資·生意',   ring:'#fbbf24', realm:'rgba(60,25,0,0.88)',  ray:'rgba(251,191,36,0.13)' },
 };
 
 // ────────────────────────────────────────────────
@@ -2198,7 +2208,7 @@ function renderPortals() {
         <div class="p-ring-outer"></div>
         <div class="p-ring-inner"></div>
         <div class="p-disc">
-          <span class="p-icon">${cfg.icon}</span>
+          <img class="p-img" src="${cfg.img}" alt="${cfg.name}" loading="lazy">
         </div>
       </div>
       <span class="portal-name">${cfg.name}</span>
