@@ -296,6 +296,33 @@
     .lot-stick:nth-child(4){height:56px;transform:rotate(5deg);}
     .lot-stick:nth-child(5){height:46px;transform:rotate(12deg);}
 
+    /* Flying lot stick */
+    #fly-stick {
+      position: fixed; display: none; z-index: 300; pointer-events: none;
+      width: 13px; height: 105px;
+      border-radius: 4px 4px 2px 2px;
+      background: linear-gradient(160deg, #e8c96a 0%, #c8880a 45%, #8b5e0a 100%);
+      box-shadow: 2px 2px 10px rgba(0,0,0,0.6), inset 0 0 6px rgba(255,210,80,0.25);
+      align-items: center; justify-content: center; flex-direction: column;
+      transform-origin: bottom center;
+    }
+    #fly-stick .fst { writing-mode: vertical-rl; font-size: 9px; color: #2a1000;
+      font-weight: bold; letter-spacing: 1px; user-select: none; }
+    @keyframes stk-pop {
+      0%  { transform: translateY(30px) rotate(-12deg) scale(0.4); opacity:0; }
+      18% { transform: translateY(-100px) rotate(10deg) scale(1.08); opacity:1; }
+      38% { transform: translateY(-80px) rotate(-6deg) scale(1); opacity:1; }
+      60% { transform: translateY(-65px) rotate(3deg); opacity:1; }
+      80% { transform: translateY(-58px) rotate(-1deg); opacity:1; }
+      100%{ transform: translateY(-55px) rotate(0deg); opacity:1; }
+    }
+    @keyframes stk-exit {
+      0%  { transform: translateY(-55px) rotate(0deg); opacity:1; }
+      100%{ transform: translateY(150px) rotate(55deg); opacity:0; }
+    }
+    .stk-pop  { animation: stk-pop  1s ease-out forwards; }
+    .stk-exit { animation: stk-exit 0.55s ease-in forwards; }
+
     /* Float / shake */
     @keyframes float-lot {
       0%,100%{transform:rotate(-1.5deg) translateY(0);}
@@ -510,6 +537,7 @@
   </style>
 </head>
 <body>
+<div id="fly-stick"><span class="fst"></span></div>
 
 <!-- ── Dynamic background ── -->
 <div id="realm"></div>
@@ -2200,16 +2228,40 @@ function doShake() {
 }
 
 function drawLot() {
-  try { getAC().resume(); } catch(e){}   // iOS: 必須在 user gesture 內 resume
-  playGong();
+  try { getAC().resume(); } catch(e){}
+  playShakeSound();
   doShake();
   setTimeout(() => {
     const lots = LOTS[selectedKey];
     const lot = lots[Math.floor(Math.random() * lots.length)];
     currentLot = lot;
-    showResult(lot);
-    setTimeout(() => playRevealChime(), 500);
+    showFlyStick(lot, () => {
+      showResult(lot);
+      setTimeout(() => playRevealChime(), 500);
+    });
   }, 1150);
+}
+
+function showFlyStick(lot, callback) {
+  const tube = document.getElementById('lot-tube');
+  const rect = tube.getBoundingClientRect();
+  const fs = document.getElementById('fly-stick');
+  fs.querySelector('.fst').textContent = lot.no;
+  fs.style.left = (rect.left + rect.width / 2 - 6.5) + 'px';
+  fs.style.top  = (rect.top + rect.height * 0.35) + 'px';
+  fs.style.display = 'flex';
+  fs.className = '';
+  void fs.offsetWidth;           // force reflow
+  fs.classList.add('stk-pop');
+  setTimeout(() => {
+    fs.classList.remove('stk-pop');
+    fs.classList.add('stk-exit');
+    setTimeout(() => {
+      fs.style.display = 'none';
+      fs.className = '';
+      callback();
+    }, 560);
+  }, 1500);
 }
 
 // ────────────────────────────────────────────────
