@@ -681,18 +681,21 @@
       font-size:0.7rem; letter-spacing:0.3em; color:rgba(232,180,74,0.55);
     }
     #dedicate-name-wrap {
-      width:100%; display:none; flex-direction:column; gap:0.5rem;
+      width:100%; display:flex; flex-direction:column; gap:0.5rem;
     }
-    #dedicate-name-wrap.show { display:flex; }
     .dedicate-name-input {
-      width:100%; padding:0.55rem 0.8rem;
-      background:rgba(232,180,74,0.06); border:1px solid rgba(232,180,74,0.28);
-      border-radius:8px; color:rgba(240,244,255,0.85);
-      font-family:inherit; font-size:0.9rem; letter-spacing:0.15em;
-      outline:none; text-align:center; transition:border-color 0.3s;
+      width:100%; padding:0.75rem 1rem;
+      background:rgba(232,180,74,0.08); border:1.5px solid rgba(232,180,74,0.55);
+      border-radius:12px; color:#fcd97a;
+      font-family:'Ma Shan Zheng','KaiTi',serif; font-size:1.15rem; letter-spacing:0.25em;
+      outline:none; text-align:center; transition:all 0.3s;
+      box-shadow:0 0 18px rgba(232,180,74,0.15),inset 0 0 12px rgba(232,180,74,0.04);
     }
-    .dedicate-name-input:focus { border-color:rgba(232,180,74,0.6); }
-    .dedicate-name-input::placeholder { color:rgba(240,244,255,0.25); }
+    .dedicate-name-input:focus {
+      border-color:rgba(232,180,74,0.9);
+      box-shadow:0 0 28px rgba(232,180,74,0.35),inset 0 0 14px rgba(232,180,74,0.07);
+    }
+    .dedicate-name-input::placeholder { color:rgba(232,180,74,0.3); font-size:0.9rem; }
     #dedicate-preview-canvas {
       width:100%; border-radius:10px;
       box-shadow:0 0 30px rgba(232,180,74,0.15);
@@ -886,14 +889,12 @@
     <!-- Buttons -->
     <div class="action-row">
       <button class="btn-ghost" onclick="resetDraw()">重新求籤</button>
-      <button class="btn-ghost" onclick="copyResult()">抄錄籤詩</button>
-      <button class="btn-ghost" onclick="playRevealChime()">重播音效</button>
     </div>
   </section>
 
   <!-- ══ 修行工具 ══ -->
   <section id="ritual-tools">
-    <h2>── 修 行 功 具 ──</h2>
+    <h2>── 修 行 工 具 ──</h2>
     <div class="ritual-cards">
 
       <!-- 抄心經 -->
@@ -911,8 +912,7 @@
           <button class="btn-sutra-start" id="btn-sutra" onclick="startSutra()">✦ 開始抄寫 ✦</button>
           <!-- 完成後出現的迴向按鈕 -->
           <div class="dedicate-row" id="dedicate-row">
-            <button class="btn-dedicate" onclick="openDedicate('self')">🪷 迴向給自己</button>
-            <button class="btn-dedicate" onclick="openDedicate('friend')">✉ 迴向給朋友</button>
+            <button class="btn-dedicate" onclick="openDedicate()">🪷 功德迴向</button>
           </div>
         </div>
       </div>
@@ -969,10 +969,10 @@
 <div id="dedicate-modal">
   <div class="dedicate-box">
     <button class="dedicate-close" onclick="closeDedicate()">✕</button>
-    <div class="dedicate-label" id="dedicate-modal-label">功 德 迴 向</div>
+    <div class="dedicate-label">功 德 迴 向</div>
     <div id="dedicate-name-wrap">
       <input class="dedicate-name-input" id="dedicate-name-input"
-        type="text" maxlength="10" placeholder="輸入朋友的名字"
+        type="text" maxlength="10" placeholder="輸入你的名字"
         oninput="refreshDedicatePreview()">
     </div>
     <canvas id="dedicate-preview-canvas" width="540" height="540"></canvas>
@@ -2928,27 +2928,15 @@ function resetSutra() {
 // ════════════════════════════════════════════════════
 // 功德迴向卡
 // ════════════════════════════════════════════════════
-let dedicateMode = 'self'; // 'self' | 'friend'
 let dedicateCardImg = null;
 
-function openDedicate(mode) {
-  dedicateMode = mode;
+function openDedicate() {
   const modal     = document.getElementById('dedicate-modal');
-  const nameWrap  = document.getElementById('dedicate-name-wrap');
   const nameInput = document.getElementById('dedicate-name-input');
-  const label     = document.getElementById('dedicate-modal-label');
-
-  if (mode === 'self') {
-    label.textContent = '迴 向 給 自 己';
-    nameWrap.classList.remove('show');
-    nameInput.value = '';
-  } else {
-    label.textContent = '迴 向 給 朋 友';
-    nameWrap.classList.add('show');
-    nameInput.value = '';
-  }
+  nameInput.value = '';
   modal.classList.add('show');
   loadDedicateCard().then(() => refreshDedicatePreview());
+  setTimeout(() => nameInput.focus(), 300);
 }
 
 function closeDedicate() {
@@ -2971,9 +2959,7 @@ function loadDedicateCard() {
 }
 
 function refreshDedicatePreview() {
-  const name = dedicateMode === 'self'
-    ? '自　己'
-    : (document.getElementById('dedicate-name-input').value.trim() || '朋友名字');
+  const name = document.getElementById('dedicate-name-input').value.trim() || '你的名字';
   drawDedicateCanvas(name);
 }
 
@@ -2990,24 +2976,15 @@ function drawDedicateCanvas(name) {
     ctx.fillRect(0, 0, W, H);
   }
 
-  // 名字（對應原圖 y≈835/1080，縮放到 540）
-  const nameY = H * (835 / 1080);
+  // 名字放在「此功德願迴向給」與下方文字之間的空白處（原圖 y≈920/1080）
+  const nameY = H * (920 / 1080);
   ctx.save();
-  ctx.font = `bold ${Math.round(W * 0.075)}px 'Ma Shan Zheng','KaiTi',serif`;
+  ctx.font = `bold ${Math.round(W * 0.072)}px 'Ma Shan Zheng','KaiTi',serif`;
   ctx.textAlign = 'center';
   ctx.fillStyle = '#fcd97a';
   ctx.shadowColor = 'rgba(232,180,74,0.9)';
-  ctx.shadowBlur  = 14;
+  ctx.shadowBlur  = 16;
   ctx.fillText(name, W / 2, nameY);
-
-  // 日期（對應原圖 y≈985/1080）
-  const today   = new Date();
-  const dateStr = `${today.getFullYear()}.${String(today.getMonth()+1).padStart(2,'0')}.${String(today.getDate()).padStart(2,'0')}`;
-  const dateY   = H * (985 / 1080);
-  ctx.font = `${Math.round(W * 0.042)}px 'Ma Shan Zheng','KaiTi',serif`;
-  ctx.fillStyle  = 'rgba(232,180,74,0.65)';
-  ctx.shadowBlur = 6;
-  ctx.fillText(dateStr, W / 2, dateY);
   ctx.restore();
 }
 
@@ -3020,29 +2997,19 @@ function getHighResCanvas() {
 
   if (dedicateCardImg) ctx.drawImage(dedicateCardImg, 0, 0, 1080, 1080);
 
-  const name = dedicateMode === 'self'
-    ? '自　己'
-    : (document.getElementById('dedicate-name-input').value.trim() || '朋友名字');
+  const name = document.getElementById('dedicate-name-input').value.trim() || '你的名字';
 
-  ctx.font = 'bold 75px "Ma Shan Zheng","KaiTi",serif';
+  ctx.font = 'bold 78px "Ma Shan Zheng","KaiTi",serif';
   ctx.textAlign  = 'center';
   ctx.fillStyle  = '#fcd97a';
   ctx.shadowColor = 'rgba(232,180,74,0.9)';
-  ctx.shadowBlur  = 22;
-  ctx.fillText(name, 540, 835);
-
-  const today   = new Date();
-  const dateStr = `${today.getFullYear()}.${String(today.getMonth()+1).padStart(2,'0')}.${String(today.getDate()).padStart(2,'0')}`;
-  ctx.font = 'bold 38px "Ma Shan Zheng","KaiTi",serif';
-  ctx.fillStyle  = 'rgba(232,180,74,0.65)';
-  ctx.shadowBlur = 8;
-  ctx.fillText(dateStr, 540, 985);
+  ctx.shadowBlur  = 24;
+  ctx.fillText(name, 540, 920);
   return hires;
 }
 
 async function shareDedicate() {
-  const name = dedicateMode === 'self' ? '自己' :
-    (document.getElementById('dedicate-name-input').value.trim() || '朋友');
+  const name = document.getElementById('dedicate-name-input').value.trim() || '你';
   const hires = getHighResCanvas();
 
   if (navigator.share) {
