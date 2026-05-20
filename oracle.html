@@ -3024,11 +3024,11 @@ function drawDedicateCanvas(name) {
   // 名字放在「此功德願迴向給」與下方文字之間的空白處（原圖 y≈920/1080）
   const nameY = H * (920 / 1080);
   ctx.save();
-  ctx.font = `bold ${Math.round(W * 0.072)}px 'Ma Shan Zheng','KaiTi',serif`;
+  ctx.font = `bold ${Math.round(W * 0.054)}px 'Ma Shan Zheng','KaiTi',serif`;
   ctx.textAlign = 'center';
-  ctx.fillStyle = '#fcd97a';
-  ctx.shadowColor = 'rgba(232,180,74,0.9)';
-  ctx.shadowBlur  = 16;
+  ctx.fillStyle = 'rgba(220,170,60,0.82)';
+  ctx.shadowColor = 'rgba(200,140,40,0.4)';
+  ctx.shadowBlur  = 8;
   ctx.fillText(name, W / 2, nameY);
   ctx.restore();
 }
@@ -3044,11 +3044,11 @@ function getHighResCanvas() {
 
   const name = document.getElementById('dedicate-name-input').value.trim() || '你的名字';
 
-  ctx.font = 'bold 78px "Ma Shan Zheng","KaiTi",serif';
+  ctx.font = 'bold 58px "Ma Shan Zheng","KaiTi",serif';
   ctx.textAlign  = 'center';
-  ctx.fillStyle  = '#fcd97a';
-  ctx.shadowColor = 'rgba(232,180,74,0.9)';
-  ctx.shadowBlur  = 24;
+  ctx.fillStyle  = 'rgba(220,170,60,0.82)';
+  ctx.shadowColor = 'rgba(200,140,40,0.4)';
+  ctx.shadowBlur  = 12;
   ctx.fillText(name, 540, 920);
   return hires;
 }
