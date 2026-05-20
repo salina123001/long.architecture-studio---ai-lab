@@ -3024,7 +3024,7 @@ function drawDedicateCanvas(name) {
   // 名字放在「此功德願迴向給」與下方文字之間的空白處（原圖 y≈920/1080）
   const nameY = H * (920 / 1080);
   ctx.save();
-  ctx.font = `bold 34px 'Ma Shan Zheng','KaiTi',serif`;
+  ctx.font = `34px 'Ma Shan Zheng','KaiTi',serif`;
   ctx.textAlign = 'center';
   const nameGrad = ctx.createLinearGradient(W/2 - 80, nameY - 44, W/2 + 80, nameY + 8);
   nameGrad.addColorStop(0,   '#8A6A2F');
@@ -3049,7 +3049,7 @@ function getHighResCanvas() {
 
   const name = document.getElementById('dedicate-name-input').value.trim() || '你的名字';
 
-  ctx.font = 'bold 68px "Ma Shan Zheng","KaiTi",serif';
+  ctx.font = '68px "Ma Shan Zheng","KaiTi",serif';
   ctx.textAlign  = 'center';
   const nameGrad = ctx.createLinearGradient(540 - 160, 876, 540 + 160, 928);
   nameGrad.addColorStop(0,   '#8A6A2F');
