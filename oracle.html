@@ -3056,8 +3056,7 @@ function knockMuyu(e) {
   fish.classList.add('muyu-hit');
   setTimeout(() => fish.classList.remove('muyu-hit'), 200);
 
-  // 音效：用現有鐘聲改造 — 短促木質敲擊
-  playMuyuSound();
+  playClick();
 
   // 計數
   document.getElementById('muyu-count').textContent = muyuCount;
